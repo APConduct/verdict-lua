@@ -1,0 +1,3 @@
+local analyzer = {}
+
+return analyzer
