@@ -1,3 +1,5 @@
+--- The verdict module for the verdict Lua static analysis tool.
+-- @module verdict
 local Parser = require("verdict.stuff.parser")
 local Lexer = require("verdict.stuff.lexer")
 

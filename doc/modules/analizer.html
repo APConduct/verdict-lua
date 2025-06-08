@@ -1,0 +1,351 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Reference</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>ldoc</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Class_Type">Class Type </a></li>
+<li><a href="#Class_SymbolTable">Class SymbolTable </a></li>
+<li><a href="#Class_TypeInference">Class TypeInference </a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><strong>analizer</strong></li>
+  <li><a href="../modules/verdict.html">verdict</a></li>
+  <li><a href="../modules/lexer.html">lexer</a></li>
+  <li><a href="../modules/parser.html">parser</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>analizer</code></h1>
+<p>The analyzer module for the verdict Lua static analysis tool.</p>
+<p></p>
+
+
+<h2><a href="#Class_Type">Class Type </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#Type.new">Type.new (kind, data)</a></td>
+	<td class="summary">Creates a new Type instance.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Type:__tostring">Type:__tostring ()</a></td>
+	<td class="summary">Returns a string representation of the type.</td>
+	</tr>
+</table>
+<h2><a href="#Class_SymbolTable">Class SymbolTable </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#SymbolTable.new">SymbolTable.new (parent)</a></td>
+	<td class="summary">Creates a new SymbolTable instance.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#SymbolTable:define">SymbolTable:define (name, type)</a></td>
+	<td class="summary">Defines a symbol in the symbol table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#SymbolTable:lookup">SymbolTable:lookup (name)</a></td>
+	<td class="summary">Looks up a symbol in the symbol table.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#SymbolTable:enter_scope">SymbolTable:enter_scope ()</a></td>
+	<td class="summary">Enters a new scope in the symbol table.</td>
+	</tr>
+</table>
+<h2><a href="#Class_TypeInference">Class TypeInference </a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference.new">TypeInference.new ()</a></td>
+	<td class="summary">Creates a new TypeInference instance.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:error">TypeInference:error (msg, node)</a></td>
+	<td class="summary">Attaches an error message to the TypeInference instance.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_literal">TypeInference:infer_literal (node)</a></td>
+	<td class="summary">Infers the type of a given AST node.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header has-description"><a name="Class_Type"></a>Class Type </h2>
+
+          <div class="section-description">
+          Represents a lua type.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "Type.new"></a>
+    <strong>Type.new (kind, data)</strong>
+    </dt>
+    <dd>
+    Creates a new Type instance.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">kind</span>
+         string The kind of the type (e.g., "string", "number", etc.)
+        </li>
+        <li><span class="parameter">data</span>
+         any Additional data associated with the type (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type A new Type instance.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Type:__tostring"></a>
+    <strong>Type:__tostring ()</strong>
+    </dt>
+    <dd>
+    Returns a string representation of the type.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        string A string representation of the type.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_SymbolTable"></a>Class SymbolTable </h2>
+
+          <div class="section-description">
+          Represents a symbol table for type inference.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "SymbolTable.new"></a>
+    <strong>SymbolTable.new (parent)</strong>
+    </dt>
+    <dd>
+    Creates a new SymbolTable instance.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">parent</span>
+         SymbolTable | nil The parent symbol table (optional)
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SymbolTable:define"></a>
+    <strong>SymbolTable:define (name, type)</strong>
+    </dt>
+    <dd>
+    Defines a symbol in the symbol table.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+         string The name of the symbol
+        </li>
+        <li><span class="parameter">type</span>
+         Type The type of the symbol
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        nil
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SymbolTable:lookup"></a>
+    <strong>SymbolTable:lookup (name)</strong>
+    </dt>
+    <dd>
+    Looks up a symbol in the symbol table.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+         string The name of the symbol
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type | nil The type of the symbol if found, otherwise nil
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SymbolTable:enter_scope"></a>
+    <strong>SymbolTable:enter_scope ()</strong>
+    </dt>
+    <dd>
+    Enters a new scope in the symbol table.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        SymbolTable A new SymbolTable instance representing the new scope
+    </ol>
+
+
+
+
+</dd>
+</dl>
+    <h2 class="section-header has-description"><a name="Class_TypeInference"></a>Class TypeInference </h2>
+
+          <div class="section-description">
+          The type inference module for the verdict Lua static analysis tool.
+          </div>
+    <dl class="function">
+    <dt>
+    <a name = "TypeInference.new"></a>
+    <strong>TypeInference.new ()</strong>
+    </dt>
+    <dd>
+    Creates a new TypeInference instance.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table A new TypeInference instance
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:error"></a>
+    <strong>TypeInference:error (msg, node)</strong>
+    </dt>
+    <dd>
+    Attaches an error message to the TypeInference instance.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">msg</span>
+         string The error message
+        </li>
+        <li><span class="parameter">node</span>
+         table The AST node associated with the error (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        nil
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_literal"></a>
+    <strong>TypeInference:infer_literal (node)</strong>
+    </dt>
+    <dd>
+    Infers the type of a given AST node.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+         table The AST node to infer the type for
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type The inferred type of the node
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2025-06-08 00:30:26 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>
