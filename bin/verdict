@@ -1,0 +1,11 @@
+#!/usr/bin/env lua
+
+-- Executable script to run the 'verdict' command
+
+-- Set up the module path to find modules in src directory
+package.path = "./src/?.lua;./src/?/init.lua;" .. package.path
+
+local verdict = require("verdict")
+
+-- Analyzer not implemented yet, print message saying so
+print("The 'verdict' command is not implemented yet. Please check back later for updates.")
