@@ -60,6 +60,94 @@
 	<td class="name" nowrap><a href="#Parser.new">Parser.new (tokens)</a></td>
 	<td class="summary">Creates a new Parser instance</td>
 	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:advance">Parser:advance ()</a></td>
+	<td class="summary">Advances to the next token</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:peek_token">Parser:peek_token (offset)</a></td>
+	<td class="summary">Peeks at the next token without advancing</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:consume">Parser:consume (expected_type)</a></td>
+	<td class="summary">Consumes a token of the expected type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:skip_newlines">Parser:skip_newlines ()</a></td>
+	<td class="summary">Skip newline tokens</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse">Parser:parse ()</a></td>
+	<td class="summary">Parses the entire program</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_statement">Parser:parse_statement ()</a></td>
+	<td class="summary">Parses a statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_local_statement">Parser:parse_local_statement ()</a></td>
+	<td class="summary">Parses a local statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_assignment">Parser:parse_assignment ()</a></td>
+	<td class="summary">Parses an assignment statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_function_definition">Parser:parse_function_definition ()</a></td>
+	<td class="summary">Parses a function definition</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_if_statement">Parser:parse_if_statement ()</a></td>
+	<td class="summary">Parses an if statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_return_statement">Parser:parse_return_statement ()</a></td>
+	<td class="summary">Parses a return statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_expression">Parser:parse_expression ()</a></td>
+	<td class="summary">Parses an expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_or_expression">Parser:parse_or_expression ()</a></td>
+	<td class="summary">Parses an OR expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_and_expression">Parser:parse_and_expression ()</a></td>
+	<td class="summary">Parses an AND expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_equality_expression">Parser:parse_equality_expression ()</a></td>
+	<td class="summary">Parses an equality expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_relational_expression">Parser:parse_relational_expression ()</a></td>
+	<td class="summary">Parses a relational expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_concatenation_expression">Parser:parse_concatenation_expression ()</a></td>
+	<td class="summary">Parses a concatenation expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_additive_expression">Parser:parse_additive_expression ()</a></td>
+	<td class="summary">Parses an additive expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_multiplicative_expression">Parser:parse_multiplicative_expression ()</a></td>
+	<td class="summary">Parses a multiplicative expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_unary_expression">Parser:parse_unary_expression ()</a></td>
+	<td class="summary">Parses a unary expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_primary_expression">Parser:parse_primary_expression ()</a></td>
+	<td class="summary">Parses a primary expression</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_table_constructor">Parser:parse_table_constructor ()</a></td>
+	<td class="summary">Parses a table constructor</td>
+	</tr>
 </table>
 
 <br/>
@@ -94,6 +182,426 @@
 
 
 </dd>
+    <dt>
+    <a name = "Parser:advance"></a>
+    <strong>Parser:advance ()</strong>
+    </dt>
+    <dd>
+    Advances to the next token
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:peek_token"></a>
+    <strong>Parser:peek_token (offset)</strong>
+    </dt>
+    <dd>
+    Peeks at the next token without advancing
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">offset</span>
+         number|nil Optional offset (default 1)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The token at position + offset
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:consume"></a>
+    <strong>Parser:consume (expected_type)</strong>
+    </dt>
+    <dd>
+    Consumes a token of the expected type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">expected_type</span>
+         string The expected token type
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The consumed token
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:skip_newlines"></a>
+    <strong>Parser:skip_newlines ()</strong>
+    </dt>
+    <dd>
+    Skip newline tokens
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse"></a>
+    <strong>Parser:parse ()</strong>
+    </dt>
+    <dd>
+    Parses the entire program
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST for the program
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_statement"></a>
+    <strong>Parser:parse_statement ()</strong>
+    </dt>
+    <dd>
+    Parses a statement
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table|nil The AST node for the statement
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_local_statement"></a>
+    <strong>Parser:parse_local_statement ()</strong>
+    </dt>
+    <dd>
+    Parses a local statement
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the local statement
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_assignment"></a>
+    <strong>Parser:parse_assignment ()</strong>
+    </dt>
+    <dd>
+    Parses an assignment statement
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the assignment
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_function_definition"></a>
+    <strong>Parser:parse_function_definition ()</strong>
+    </dt>
+    <dd>
+    Parses a function definition
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the function definition
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_if_statement"></a>
+    <strong>Parser:parse_if_statement ()</strong>
+    </dt>
+    <dd>
+    Parses an if statement
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the if statement
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_return_statement"></a>
+    <strong>Parser:parse_return_statement ()</strong>
+    </dt>
+    <dd>
+    Parses a return statement
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the return statement
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_expression"></a>
+    <strong>Parser:parse_expression ()</strong>
+    </dt>
+    <dd>
+    Parses an expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_or_expression"></a>
+    <strong>Parser:parse_or_expression ()</strong>
+    </dt>
+    <dd>
+    Parses an OR expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_and_expression"></a>
+    <strong>Parser:parse_and_expression ()</strong>
+    </dt>
+    <dd>
+    Parses an AND expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_equality_expression"></a>
+    <strong>Parser:parse_equality_expression ()</strong>
+    </dt>
+    <dd>
+    Parses an equality expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_relational_expression"></a>
+    <strong>Parser:parse_relational_expression ()</strong>
+    </dt>
+    <dd>
+    Parses a relational expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_concatenation_expression"></a>
+    <strong>Parser:parse_concatenation_expression ()</strong>
+    </dt>
+    <dd>
+    Parses a concatenation expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_additive_expression"></a>
+    <strong>Parser:parse_additive_expression ()</strong>
+    </dt>
+    <dd>
+    Parses an additive expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_multiplicative_expression"></a>
+    <strong>Parser:parse_multiplicative_expression ()</strong>
+    </dt>
+    <dd>
+    Parses a multiplicative expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_unary_expression"></a>
+    <strong>Parser:parse_unary_expression ()</strong>
+    </dt>
+    <dd>
+    Parses a unary expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_primary_expression"></a>
+    <strong>Parser:parse_primary_expression ()</strong>
+    </dt>
+    <dd>
+    Parses a primary expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_table_constructor"></a>
+    <strong>Parser:parse_table_constructor ()</strong>
+    </dt>
+    <dd>
+    Parses a table constructor
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the table constructor
+    </ol>
+
+
+
+
+</dd>
 </dl>
 
 
@@ -101,7 +609,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-06-09 17:47:54 </i>
+<i style="float:right;">Last updated 2025-06-09 18:08:59 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
