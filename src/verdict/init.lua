@@ -59,11 +59,17 @@ function verdict.analyze(source)
     results.ast = ast
 
     -- Step 3: Type analysis
-    local type_inference = analyzer.TypeInference.new()
-    local type_errors = type_inference:analyze(ast)
+    print("=== DEBUG: AST Structure ===")
+    for i, stmt in ipairs(ast or {}) do
+        print(i .. ". " .. stmt.type .. " - " .. (stmt.data and stmt.data.name or "no name"))
+    end
+    print("===========================")
 
-    -- Convert analyzer errors to our result format
-    for _, error in ipairs(type_errors) do
+    local type_inference = analyzer.TypeInference.new()
+    local analysis_result = type_inference:analyze(ast)
+
+    -- Convert analyzer errors and warnings to our result format
+    for _, error in ipairs(analysis_result.errors or {}) do
         table.insert(results.errors, {
             type = "type_error",
             message = error.message,
@@ -72,6 +78,19 @@ function verdict.analyze(source)
             phase = "type_analysis"
         })
     end
+
+    -- Add warnings to results
+    results.warnings = {}
+    for _, warning in ipairs(analysis_result.warnings or {}) do
+        table.insert(results.warnings, {
+            type = "type_warning",
+            message = warning.message,
+            line = warning.line,
+            column = warning.column,
+            phase = "type_analysis"
+        })
+    end
+
 
     -- Add symbol table for inspection
     results.global_scope = type_inference.global_scope

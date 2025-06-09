@@ -144,6 +144,18 @@ function Lexer:advance()
     end
 end
 
+--- Skips comments (lines starting with --)
+function Lexer:skip_comment()
+    -- Skip the -- characters
+    self:advance()
+    self:advance()
+
+    -- Skip everything until end of line
+    while self:current_char() and self:current_char() ~= '\n' do
+        self:advance()
+    end
+end
+
 --- Skips whitespace characters
 function Lexer:skip_whitespace()
     while self:current_char() and self:current_char():match("%s") and self:current_char() ~= '\n' do
@@ -239,6 +251,14 @@ function Lexer:tokenize()
             end
             self:advance()
             self:skip_whitespace()
+        elseif char == '-' then
+            -- Check if it's a comment (--)
+            if self:peek_char() == '-' then
+                self:skip_comment()
+            else
+                table.insert(self.tokens, create_token(TOKEN_TYPES.MINUS, char, self.line, self.column))
+                self:advance()
+            end
         elseif char and char:match("%d") then
             table.insert(self.tokens, self:read_number())
         elseif char == '"' or char == "'" then

@@ -56,7 +56,7 @@ end
 ---@param expected_type string The expected token type
 ---@return table The consumed token
 function Parser:consume(expected_type)
-    if self.current_token == expected_type then
+    if self.current_token.type == expected_type then
         local token = self.current_token
         self:advance()
         return token
@@ -138,19 +138,57 @@ function Parser:parse_local_statement()
     local line, column = self.current_token.line, self.current_token.column
     self:consume("KEYWORD") -- consume 'local'
 
-    local name_token = self:consume("IDENTIFIER")
+    -- Check if it's a local function declaration
+    if self.current_token.type == "KEYWORD" and self.current_token.value == "function" then
+        self:consume("KEYWORD") -- consume 'function'
 
-    if self.current_token.type == "ASSIGN" then
-        self:consume("ASSIGN")
-        local expr = self:parse_expression()
-        return create_node("local_assignment", {
+        local name_token = self:consume("IDENTIFIER")
+        self:consume("LEFT_PAREN")
+
+        local params = {}
+        while self.current_token.type == "IDENTIFIER" do
+            table.insert(params, self.current_token.value)
+            self:advance()
+            if self.current_token.type == "COMMA" then
+                self:advance()
+            end
+        end
+
+        self:consume("RIGHT_PAREN")
+        self:skip_newlines()
+
+        local body = {}
+        while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+            local stmt = self:parse_statement()
+            if stmt then
+                table.insert(body, stmt)
+            end
+            self:skip_newlines()
+        end
+
+        self:consume("KEYWORD") -- consume 'end'
+
+        return create_node("local_function_def", {
             name = name_token.value,
-            expr = expr
+            params = params,
+            body = body
         }, line, column)
     else
-        return create_node("local_declaration", {
-            name = name_token.value
-        }, line, column)
+        -- Regular local variable declaration/assignment
+        local name_token = self:consume("IDENTIFIER")
+
+        if self.current_token.type == "ASSIGN" then
+            self:consume("ASSIGN")
+            local expr = self:parse_expression()
+            return create_node("local_assignment", {
+                name = name_token.value,
+                expr = expr
+            }, line, column)
+        else
+            return create_node("local_declaration", {
+                name = name_token.value
+            }, line, column)
+        end
     end
 end
 
@@ -205,6 +243,109 @@ function Parser:parse_function_definition()
         params = params,
         body = body
     }, line, column)
+end
+
+--- Parses a while statement
+---@return table The AST node for the while statement
+function Parser:parse_while_statement()
+    local line, column = self.current_token.line, self.current_token.column
+    self:consume("KEYWORD") -- consume 'while'
+
+    local condition = self:parse_expression()
+    self:consume("KEYWORD") -- consume 'do'
+    self:skip_newlines()
+
+    local body = {}
+    while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+        local stmt = self:parse_statement()
+        if stmt then
+            table.insert(body, stmt)
+        end
+        self:skip_newlines()
+    end
+
+    self:consume("KEYWORD") -- consume 'end'
+
+    return create_node("while_statement", {
+        condition = condition,
+        body = body
+    }, line, column)
+end
+
+--- Parses a for statement
+---@return table The AST node for the for statement
+function Parser:parse_for_statement()
+    local line, column = self.current_token.line, self.current_token.column
+    self:consume("KEYWORD") -- consume 'for'
+
+    local var_token = self:consume("IDENTIFIER")
+
+    -- Check if it's a numeric for loop (for i = 1, 10 do) or generic for loop (for k, v in pairs(t) do)
+    if self.current_token.type == "ASSIGN" then
+        -- Numeric for loop: for i = start, end [, step] do
+        self:consume("ASSIGN")
+        local start_expr = self:parse_expression()
+        self:consume("COMMA")
+        local end_expr = self:parse_expression()
+
+        local step_expr = nil
+        if self.current_token.type == "COMMA" then
+            self:advance()
+            step_expr = self:parse_expression()
+        end
+
+        self:consume("KEYWORD") -- consume 'do'
+        self:skip_newlines()
+
+        local body = {}
+        while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+            local stmt = self:parse_statement()
+            if stmt then
+                table.insert(body, stmt)
+            end
+            self:skip_newlines()
+        end
+
+        self:consume("KEYWORD") -- consume 'end'
+
+        return create_node("for_statement", {
+            var = var_token.value,
+            start = start_expr,
+            finish = end_expr,
+            step = step_expr,
+            body = body
+        }, line, column)
+    else
+        -- Generic for loop: for k, v in iterator do
+        local vars = { var_token.value }
+
+        while self.current_token.type == "COMMA" do
+            self:advance()
+            table.insert(vars, self:consume("IDENTIFIER").value)
+        end
+
+        self:consume("KEYWORD") -- consume 'in'
+        local iterator = self:parse_expression()
+        self:consume("KEYWORD") -- consume 'do'
+        self:skip_newlines()
+
+        local body = {}
+        while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+            local stmt = self:parse_statement()
+            if stmt then
+                table.insert(body, stmt)
+            end
+            self:skip_newlines()
+        end
+
+        self:consume("KEYWORD") -- consume 'end'
+
+        return create_node("for_statement", {
+            vars = vars,
+            iterator = iterator,
+            body = body
+        }, line, column)
+    end
 end
 
 --- Parses an if statement

@@ -63,8 +63,24 @@
 	<td class="summary">Creates a new Type instance.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#Type:is_assignable_to">Type:is_assignable_to (other)</a></td>
+	<td class="summary">Checks if this type is assignable to another type</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#Type:__tostring">Type:__tostring ()</a></td>
 	<td class="summary">Returns a string representation of the type.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Type.union">Type.union (types)</a></td>
+	<td class="summary">Creates a union type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Type.function_type">Type.function_type (params, returns)</a></td>
+	<td class="summary">Creates a function type</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Type.table_type">Type.table_type (fields)</a></td>
+	<td class="summary">Creates a table type</td>
 	</tr>
 </table>
 <h2><a href="#Class_SymbolTable">Class SymbolTable </a></h2>
@@ -74,7 +90,7 @@
 	<td class="summary">Creates a new SymbolTable instance.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#SymbolTable:define">SymbolTable:define (name, type)</a></td>
+	<td class="name" nowrap><a href="#SymbolTable:define">SymbolTable:define (name, type, line, column)</a></td>
 	<td class="summary">Defines a symbol in the symbol table.</td>
 	</tr>
 	<tr>
@@ -82,7 +98,11 @@
 	<td class="summary">Looks up a symbol in the symbol table.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#SymbolTable:enter_scope">SymbolTable:enter_scope ()</a></td>
+	<td class="name" nowrap><a href="#SymbolTable:get_unused_variables">SymbolTable:get_unused_variables ()</a></td>
+	<td class="summary">Gets unused variables in this scope</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#SymbolTable:enter_scope">SymbolTable:enter_scope (scope_name)</a></td>
 	<td class="summary">Enters a new scope in the symbol table.</td>
 	</tr>
 </table>
@@ -97,8 +117,32 @@
 	<td class="summary">Attaches an error message to the TypeInference instance.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#TypeInference:infer_literal">TypeInference:infer_literal (node)</a></td>
-	<td class="summary">Infers the type of a given AST node.</td>
+	<td class="name" nowrap><a href="#TypeInference:warning">TypeInference:warning (msg, node)</a></td>
+	<td class="summary">Attaches a warning message to the TypeInference instance.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_literal">TypeInference:infer_literal (literal_data)</a></td>
+	<td class="summary">Infers the type of a literal node.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_unary_op">TypeInference:infer_unary_op (expr_type, op, node)</a></td>
+	<td class="summary">Infers the type of a unary operation.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_binary_op">TypeInference:infer_binary_op (left_type, right_type, op, node)</a></td>
+	<td class="summary">Infers the type of a binary operation.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_expression">TypeInference:infer_expression (node, scope)</a></td>
+	<td class="summary">Infers the type of an expression.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_statement">TypeInference:analyze_statement (node, scope)</a></td>
+	<td class="summary">Analyzes a statement.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze">TypeInference:analyze (ast)</a></td>
+	<td class="summary">Performs static analysis on the AST.</td>
 	</tr>
 </table>
 
@@ -123,7 +167,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">kind</span>
-         string The kind of the type (e.g., "string", "number", etc.)
+         string The kind of the type (e.g., "primitive", "function", "table", "unknown")
         </li>
         <li><span class="parameter">data</span>
          any Additional data associated with the type (optional)
@@ -134,6 +178,31 @@
     <ol>
 
         Type A new Type instance.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Type:is_assignable_to"></a>
+    <strong>Type:is_assignable_to (other)</strong>
+    </dt>
+    <dd>
+    Checks if this type is assignable to another type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">other</span>
+         Type The target type
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        boolean True if this type can be assigned to other
     </ol>
 
 
@@ -153,6 +222,84 @@
     <ol>
 
         string A string representation of the type.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Type.union"></a>
+    <strong>Type.union (types)</strong>
+    </dt>
+    <dd>
+    Creates a union type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">types</span>
+         table Array of types
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Union type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Type.function_type"></a>
+    <strong>Type.function_type (params, returns)</strong>
+    </dt>
+    <dd>
+    Creates a function type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">params</span>
+         table Array of parameter types
+        </li>
+        <li><span class="parameter">returns</span>
+         Type Return type
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Function type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Type.table_type"></a>
+    <strong>Type.table_type (fields)</strong>
+    </dt>
+    <dd>
+    Creates a table type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fields</span>
+         table Map of field names to types
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Table type
     </ol>
 
 
@@ -188,7 +335,7 @@
 </dd>
     <dt>
     <a name = "SymbolTable:define"></a>
-    <strong>SymbolTable:define (name, type)</strong>
+    <strong>SymbolTable:define (name, type, line, column)</strong>
     </dt>
     <dd>
     Defines a symbol in the symbol table.
@@ -201,6 +348,12 @@
         </li>
         <li><span class="parameter">type</span>
          Type The type of the symbol
+        </li>
+        <li><span class="parameter">line</span>
+         number Line number where defined
+        </li>
+        <li><span class="parameter">column</span>
+         number Column number where defined
         </li>
     </ul>
 
@@ -232,7 +385,26 @@
     <h3>Returns:</h3>
     <ol>
 
-        Type | nil The type of the symbol if found, otherwise nil
+        Symbol | nil The symbol if found, otherwise nil
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SymbolTable:get_unused_variables"></a>
+    <strong>SymbolTable:get_unused_variables ()</strong>
+    </dt>
+    <dd>
+    Gets unused variables in this scope
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table Array of unused symbols
     </ol>
 
 
@@ -241,12 +413,18 @@
 </dd>
     <dt>
     <a name = "SymbolTable:enter_scope"></a>
-    <strong>SymbolTable:enter_scope ()</strong>
+    <strong>SymbolTable:enter_scope (scope_name)</strong>
     </dt>
     <dd>
     Enters a new scope in the symbol table.
 
 
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">scope_name</span>
+         string Optional name for the scope
+        </li>
+    </ul>
 
     <h3>Returns:</h3>
     <ol>
@@ -313,11 +491,129 @@
 
 </dd>
     <dt>
-    <a name = "TypeInference:infer_literal"></a>
-    <strong>TypeInference:infer_literal (node)</strong>
+    <a name = "TypeInference:warning"></a>
+    <strong>TypeInference:warning (msg, node)</strong>
     </dt>
     <dd>
-    Infers the type of a given AST node.
+    Attaches a warning message to the TypeInference instance.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">msg</span>
+         string The warning message
+        </li>
+        <li><span class="parameter">node</span>
+         table The AST node associated with the warning (optional)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        nil
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_literal"></a>
+    <strong>TypeInference:infer_literal (literal_data)</strong>
+    </dt>
+    <dd>
+    Infers the type of a literal node.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">literal_data</span>
+         table The literal data from the AST node
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type The inferred type of the literal
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_unary_op"></a>
+    <strong>TypeInference:infer_unary_op (expr_type, op, node)</strong>
+    </dt>
+    <dd>
+    Infers the type of a unary operation.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">expr_type</span>
+         Type The type of the operand expression
+        </li>
+        <li><span class="parameter">op</span>
+         string The unary operator
+        </li>
+        <li><span class="parameter">node</span>
+         table The AST node for error reporting
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type The result type of the unary operation
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_binary_op"></a>
+    <strong>TypeInference:infer_binary_op (left_type, right_type, op, node)</strong>
+    </dt>
+    <dd>
+    Infers the type of a binary operation.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">left_type</span>
+         Type The type of the left operand
+        </li>
+        <li><span class="parameter">right_type</span>
+         Type The type of the right operand
+        </li>
+        <li><span class="parameter">op</span>
+         string The binary operator
+        </li>
+        <li><span class="parameter">node</span>
+         table The AST node for error reporting
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type The result type of the binary operation
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_expression"></a>
+    <strong>TypeInference:infer_expression (node, scope)</strong>
+    </dt>
+    <dd>
+    Infers the type of an expression.
 
 
     <h3>Parameters:</h3>
@@ -325,12 +621,68 @@
         <li><span class="parameter">node</span>
          table The AST node to infer the type for
         </li>
+        <li><span class="parameter">scope</span>
+         SymbolTable The current scope
+        </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-        Type The inferred type of the node
+        Type The inferred type of the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_statement"></a>
+    <strong>TypeInference:analyze_statement (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes a statement.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+         table The AST node representing the statement
+        </li>
+        <li><span class="parameter">scope</span>
+         SymbolTable The current scope
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type|nil Return type if this is a return statement
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze"></a>
+    <strong>TypeInference:analyze (ast)</strong>
+    </dt>
+    <dd>
+    Performs static analysis on the AST.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">ast</span>
+         table The AST to analyze
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table Array of errors found during analysis
     </ol>
 
 
@@ -344,7 +696,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-06-09 18:14:19 </i>
+<i style="float:right;">Last updated 2025-06-09 18:17:45 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
