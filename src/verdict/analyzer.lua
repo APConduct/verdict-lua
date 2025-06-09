@@ -146,4 +146,178 @@ function TypeInference:infer_literal(node)
     end
 end
 
+function TypeInference:infer_binary_op(left_type, right_type, op)
+    -- Simplified binary operation type rules
+    if op == "+" or op == "-" or op == "*" or op == "/" or op == "%" then
+        if left_type.kind == "primative" and left_type.data.name == "number"
+            and right_type.kind == "primative" and right_type.data.name == "number" then
+            return Type.number()
+        else
+            return Type.unknown()
+        end
+    elseif op == ".." then
+        -- String concatenation
+        return Type.string()
+    elseif op == "==" or op == "~=" or op == "<" or op == ">" or op == "<=" or op == ">=" then
+        return Type.boolean()
+    elseif op == "and" or op == "or" then
+        -- Simplified: return right type for now
+        return right_type
+    else
+        return Type.unknown()
+    end
+end
+
+function TypeInference:infer_expression(node, scope)
+    if not node then
+        return Type.unknown()
+    end
+
+    if node.type == "literal" then
+        return self:infer_literal(node.data)
+    elseif node.type == "identifier" then
+        local var_type = scope:lookup(node.data.name)
+        if not var_type then
+            self:error("Unidentified variable: " .. node.data.name, node)
+            return Type.unknown()
+        end
+        return var_type
+    elseif node.type == "binary_op" then
+        local left_type = self:infer_expression(node.data.left, scope)
+        local right_type = self:infer_expression(node.data.right, scope)
+        return self:infer_binary_op(left_type, right_type, node.data.op)
+    elseif node.type == "function_call" then
+        local func_type = self:infer_expression(node.data.func, scope)
+        if func_type.kind == "function" then
+            return func_type.data.returns or Type.unknown()
+        else
+            self:error("Attempting to call non-function", node)
+            return Type.unknown()
+        end
+    elseif node.type == "table_constructor" then
+        -- Simplified table inference
+        return Type.new("table", { fields = {} })
+    else
+        return Type.unknown()
+    end
+end
+
+function TypeInference:analyze_statement(node, scope)
+    if not node then return end
+
+    if node.type == "local_assignment" then
+        -- local x = expr
+        local expr_type = self:infer_expression(node.data.expr, scope)
+        scope:define(node.data.name, expr_type)
+    elseif node.type == "assignment" then
+        -- x = expr
+        local expr_type = self:infer_expression(node.data.expr, scope)
+        local var_type = scope:lookup(node.data.name)
+        if var_type then
+            -- TODO: Check type compatability
+        else
+            -- Global assignment
+            self.global_scope:define(node.data.name, expr_type)
+        end
+    elseif node.type == "function_def" then
+        -- function name(params) body end
+        local func_type = Type.new("function", {
+            params = {},             -- TODO: infer parameter types
+            returns = Type.unknown() -- TODO: infer return type
+        })
+        scope:define(node.data.name, func_type)
+
+        -- Analyze function body in new scope
+        local func_scope = scope:enter_scope()
+        for _, stmt in ipairs(node.data.body or {}) do
+            self:analyze_statement(stmt, func_scope)
+        end
+    elseif node.type == "if_statement" then
+        local cond_type = self:infer_expression(node.data.condition, scope)
+        -- TODO: Type narrowing based on condition
+        for _, stmt in ipairs(node.data.then_block or {}) do
+            self:analyze_statement(stmt, scope)
+        end
+
+        if node.data.else_block then
+            for _, stmt in ipairs(node.data.else_block) do
+                self:analyze_statement(stmt, scope)
+            end
+        end
+    elseif node.type == "block" then
+        local block_scope = scope:enter_scope()
+        for _, stmt in ipairs(node.data.statements or {}) do
+            self:analyze_statement(stmt, block_scope)
+        end
+    end
+end
+
+function TypeInference:analyze(ast)
+    self.current_scope = self.global_scope
+
+    -- Add built-in functions
+    self.global_scope:define("print", Type.new("function", {
+        params = { Type.unknown() },
+        returns = Type.nil_type()
+    }))
+
+    self.global_scope:define("type", Type.new("function", {
+        params = { Type.unknown() },
+        returns = Type.string()
+    }))
+
+    -- Analyze the AST
+    for _, stmt in ipairs(ast or {}) do
+        self:analyze_statement(stmt, self.current_scope)
+    end
+
+    return self.errors
+end
+
+-- Example usage and testing
+function analyzer.create_example_ast()
+    -- Example ast for: local x = 42 print(x + 1)
+    return {
+        create_node("local_assignment", {
+            name = "x",
+            expr = create_node("literal", { type = "number", value = 42 })
+        }),
+        create_node("function_call", {
+            func = create_node("identifier", { name = "print" }),
+            args = {
+                create_node("binary_op", {
+                    left = create_node("identifier", { name = "x" }),
+                    right = create_node("literal", { type = "number", value = 1 }),
+                    op = "+"
+                })
+            }
+        })
+    }
+end
+
+function analyzer.test()
+    print("Testing lua static analyzer")
+
+    local inference = TypeInference.new()
+    local ast = analyzer.create_example_ast()
+    local errors = inference:analyze(ast)
+
+    print("Analysis complete. Errors found:", #errors)
+    for _, error in ipairs(errors) do
+        print("Error: " .. error.message)
+    end
+
+    -- Test symbol lookup
+    local x_type = inference.global_scope:lookup("x")
+    if x_type then
+        print("Variable 'x' has type: " .. tostring(x_type))
+    end
+end
+
+-- Export the main components
+analyzer.Type = Type
+analyzer.SymbolTable = SymbolTable
+analyzer.TypeInference = TypeInference
+analyzer.test = analyzer.test
+
 return analyzer
