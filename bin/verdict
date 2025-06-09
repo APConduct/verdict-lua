@@ -7,5 +7,157 @@ package.path = "./src/?.lua;./src/?/init.lua;" .. package.path
 
 local verdict = require("verdict")
 
--- Analyzer not implemented yet, print message saying so
-print("The 'verdict' command is not implemented yet. Please check back later for updates.")
+-- Command line argument parsing
+local function print_usage()
+    print("Usage: verdict [options] <file.lua>")
+    print("Options:")
+    print("  -h, --help     Show this help message")
+    print("  -t, --test     Run built-in tests")
+    print("  -v, --verbose  Verbose output")
+    print("  --demo         Run demo analysis")
+    print()
+    print("Examples:")
+    print("  verdict my_script.lua")
+    print("  verdict --test")
+    print("  verdict --demo")
+end
+
+local function run_tests()
+    print("=== Running Verdict Tests ===")
+
+    -- Test 1: Basic type checking
+    print("\n--- Test 1: Basic type checking ---")
+    local test_code = [[
+        local x = 42
+        local y = "hello"
+        local z = x + 10
+        print(z)
+    ]]
+
+    local results = verdict.analyze(test_code)
+    verdict.print_results(results)
+
+    -- Test 2: Type errors
+    print("\n--- Test 2: Type errors ---")
+    local error_code = [[
+        local x = 42
+        local y = "hello"
+        local z = x + y  -- Type error: number + string
+        print(unknown_var)  -- Undefined variable
+    ]]
+
+    results = verdict.analyze(error_code)
+    verdict.print_results(results)
+
+    -- Test 3: Function definition and call
+    print("\n--- Test 3: Function definition ---")
+    local func_code = [[
+        function add(a, b)
+            return a + b
+        end
+
+        local result = add(5, 10)
+        print(result)
+    ]]
+
+    results = verdict.analyze(func_code)
+    verdict.print_results(results)
+
+    print("=== Tests Complete ===")
+end
+
+local function run_demo()
+    print("=== Verdict Demo ===")
+
+    local demo_code = [[
+        -- Demo Lua code for static analysis
+        local name = "Verdict"
+        local version = 1.0
+
+        function greet(person)
+            local message = "Hello, " .. person .. "!"
+            print(message)
+            return message
+        end
+
+        function calculate(x, y)
+            if x > y then
+                return x * 2
+            else
+                return y * 2
+            end
+        end
+
+        local greeting = greet(name)
+        local result = calculate(10, 5)
+
+        -- This will cause a type error
+        local bad_calc = calculate("not", "numbers")
+    ]]
+
+    print("Analyzing demo code...")
+    print("Code:")
+    print(demo_code)
+    print("\nAnalysis Results:")
+
+    local results = verdict.analyze(demo_code)
+    verdict.print_results(results)
+
+    if results.global_scope then
+        print("=== Symbol Table ===")
+        local symbols = results.global_scope.symbols
+        for name, type_info in pairs(symbols) do
+            print("  " .. name .. ": " .. tostring(type_info))
+        end
+    end
+end
+
+-- Parse command line arguments
+local args = {...}
+
+if #args == 0 then
+    print_usage()
+    return
+end
+
+local i = 1
+local filename = nil
+local verbose = false
+
+while i <= #args do
+    local arg = args[i]
+
+    if arg == "-h" or arg == "--help" then
+        print_usage()
+        return
+    elseif arg == "-t" or arg == "--test" then
+        run_tests()
+        return
+    elseif arg == "--demo" then
+        run_demo()
+        return
+    elseif arg == "-v" or arg == "--verbose" then
+        verbose = true
+    elseif not filename and not arg:match("^%-") then
+        filename = arg
+    end
+
+    i = i + 1
+end
+
+if filename then
+    print("Analyzing file: " .. filename)
+    local results = verdict.analyze_file(filename)
+    verdict.print_results(results)
+
+    if verbose and results.global_scope then
+        print("\n=== Symbol Table ===")
+        local symbols = results.global_scope.symbols
+        for name, type_info in pairs(symbols) do
+            print("  " .. name .. ": " .. tostring(type_info))
+        end
+    end
+else
+    print("Error: No file specified")
+    print_usage()
+end

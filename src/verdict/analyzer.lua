@@ -23,7 +23,7 @@ end
 ---@return string A string representation of the type.
 function Type:__tostring()
     if self.kind == "primative" then
-        return self.data
+        return self.data.name or tostring(self.data)
     elseif self.kind == "function" then
         local params = {}
         for _, param in ipairs(self.data.params or {}) do
