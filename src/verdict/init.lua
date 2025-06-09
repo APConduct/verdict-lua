@@ -59,11 +59,12 @@ function verdict.analyze(source)
     results.ast = ast
 
     -- Step 3: Type analysis
-    print("=== DEBUG: AST Structure ===")
-    for i, stmt in ipairs(ast or {}) do
-        print(i .. ". " .. stmt.type .. " - " .. (stmt.data and stmt.data.name or "no name"))
-    end
-    print("===========================")
+
+    -- Uncomment the following lines to debug the AST structure
+    -- for i, stmt in ipairs(ast or {}) do
+    --     print(i .. ". " .. stmt.type .. " - " .. (stmt.data and stmt.data.name or "no name"))
+    -- end
+    -- print("===========================")
 
     local type_inference = analyzer.TypeInference.new()
     local analysis_result = type_inference:analyze(ast)

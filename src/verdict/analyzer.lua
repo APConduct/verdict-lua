@@ -156,7 +156,6 @@ end
 ---@param column number Column number where defined
 ---@return nil
 function SymbolTable:define(name, type, line, column)
-    print("DEBUG: Defining variable '" .. name .. "' in scope")
     self.symbols[name] = Symbol.new(name, type, line, column)
 end
 
@@ -165,7 +164,6 @@ end
 ---@return Symbol | nil The symbol if found, otherwise nil
 function SymbolTable:lookup(name)
     if self.symbols[name] then
-        print("DEBUG: Using variable '" .. name .. "'") -- Add this debug line
         self.symbols[name].used = true
         return self.symbols[name]
     elseif self.parent then
@@ -179,9 +177,9 @@ end
 ---@return table Array of unused symbols
 function SymbolTable:get_unused_variables()
     local unused = {}
-    print("DEBUG: Checking unused variables in scope:")
     for name, symbol in pairs(self.symbols) do
-        print("  " .. name .. " -> used: " .. tostring(symbol.used))
+        -- Uncomment for debugging
+        -- print("  " .. name .. " -> used: " .. tostring(symbol.used))
         if not symbol.used and symbol.name ~= "_" then -- Ignore underscore variables
             table.insert(unused, symbol)
         end
@@ -366,7 +364,6 @@ function TypeInference:infer_expression(node, scope)
             self:error("Undefined variable: " .. node.data.name, node)
             return Type.unknown()
         end
-        print("DEBUG: Looking up '" .. node.data.name .. "' -> type: " .. tostring(symbol.type))
         return symbol.type
     elseif node.type == "binary_op" then
         local left_type = self:infer_expression(node.data.left, scope)
@@ -431,18 +428,14 @@ end
 ---@param scope SymbolTable Function scope
 ---@return Type Inferred type
 function TypeInference:infer_parameter_type_from_usage(param_name, body, scope)
-    print("DEBUG: Inferring type for parameter '" .. param_name .. "'")
-
     -- Look through all statements in the function body for parameter usage
     for _, stmt in ipairs(body or {}) do
         local inferred_type = self:analyze_statement_for_param_inference(stmt, param_name)
         if inferred_type.kind ~= "unknown" then
-            print("DEBUG: Inferred type for '" .. param_name .. "': " .. tostring(inferred_type))
             return inferred_type
         end
     end
 
-    print("DEBUG: Could not infer type for '" .. param_name .. "', defaulting to unknown")
     return Type.unknown()
 end
 
@@ -452,8 +445,6 @@ end
 ---@return Type Inferred type
 function TypeInference:analyze_statement_for_param_inference(stmt, param_name)
     if not stmt then return Type.unknown() end
-
-    print("DEBUG: Checking statement type '" .. (stmt.type or "nil") .. "' for parameter '" .. param_name .. "'")
 
     if stmt.type == "return_statement" and stmt.data.expr then
         return self:analyze_expression_for_param_inference(stmt.data.expr, param_name)
