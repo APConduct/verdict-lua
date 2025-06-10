@@ -155,7 +155,8 @@ function verdict.print_results(results)
         end
     end
 
-    if #results.warnings > 0 then
+    --Post-optimization
+    if results.warnings[1] ~= nil then
         print("⚠ Found " .. #results.warnings .. " warning(s):")
         for i, warning in ipairs(results.warnings) do
             local location = ""
@@ -166,7 +167,8 @@ function verdict.print_results(results)
                 end
                 location = location .. ")"
             end
-            print("  " .. i .. ". [" .. (warning.phase or "type_analysis") .. "] " .. warning.message .. location)
+            -- TODO: specify type of analysis that generated the warning
+            print("  " .. i .. ". [" .. (warning.phase or "analysis") .. "] " .. warning.message .. location)
         end
     end
 

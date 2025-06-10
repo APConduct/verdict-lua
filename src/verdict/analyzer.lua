@@ -749,7 +749,8 @@ function TypeInference:infer_function_expression(node, scope)
 
     -- Determine return type
     local return_type = Type.nil_type()
-    if #return_types > 0 then
+    -- Post-optimization below
+    if return_types[1] ~= nil then
         return_type = #return_types == 1 and return_types[1] or Type.union(return_types)
     end
 

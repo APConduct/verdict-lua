@@ -1,6 +1,4 @@
 {
-    "diagnostics.disable": [
-        "undefined-doc-name",
-        "inject-field"
-    ]
+  "diagnostics.disable": ["undefined-doc-name", "inject-field"],
+  "diagnostics.globals": ["describe", "it"]
 }
