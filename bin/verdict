@@ -11,19 +11,23 @@ local verdict = require("verdict")
 local function print_usage()
     print("Usage: verdict [options] <file.lua>")
     print("Options:")
-    print("  -h, --help     Show this help message")
-    print("  -t, --test     Run built-in tests")
-    print("  -v, --verbose  Verbose output")
-    print("  --demo         Run demo analysis")
+    print("  -h, --help       Show this help message")
+    print("  -t, --test       Run built-in tests")
+    print("  -v, --verbose    Verbose output")
+    print("  -s, --strict     Strict mode (warnings become errors)")
+    print("  --demo           Run demo analysis")
+    print("  --comprehensive  Run comprehensive test")
     print()
     print("Examples:")
     print("  verdict my_script.lua")
     print("  verdict --test")
     print("  verdict --demo")
+    print("  verdict --comprehensive")
+    print("  verdict --strict my_script.lua")
 end
 
 local function run_tests()
-    print("=== Running Verdict Tests ===")
+    print("=== Running Verdict Enhanced Tests ===")
 
     -- Test 1: Basic type checking
     print("\n--- Test 1: Basic type checking ---")
@@ -63,57 +67,163 @@ local function run_tests()
     results = verdict.analyze(func_code)
     verdict.print_results(results)
 
+    -- Test 4: Table operations
+    print("\n--- Test 4: Table operations ---")
+    local table_code = [[
+        local person = {
+            name = "Alice",
+            age = 30
+        }
+
+        local name = person.name
+        local age = person["age"]
+        print(name, age)
+    ]]
+
+    results = verdict.analyze(table_code)
+    verdict.print_results(results)
+
+    -- Test 5: Method calls
+    print("\n--- Test 5: Method calls ---")
+    local method_code = [[
+        local obj = {value = 10}
+
+        function obj:getValue()
+            return self.value
+        end
+
+        local result = obj:getValue()
+        print(result)
+    ]]
+
+    results = verdict.analyze(method_code)
+    verdict.print_results(results)
+
     print("=== Tests Complete ===")
 end
 
 local function run_demo()
-    print("=== Verdict Demo ===")
+    print("=== Verdict Enhanced Demo ===")
 
     local demo_code = [[
-        -- Demo Lua code for static analysis
-        local name = "Verdict"
-        local version = 1.0
+        -- Enhanced demo with new features
+        local config = {
+            name = "MyApp",
+            version = "1.0",
+            settings = {
+                debug = true,
+                max_users = 100
+            }
+        }
 
-        function greet(person)
-            local message = "Hello, " .. person .. "!"
-            print(message)
-            return message
-        end
+        function process_user(user_data)
+            local username = user_data.name
+            local age = user_data.age
 
-        function calculate(x, y)
-            if x > y then
-                return x * 2
+            if age < 18 then
+                return "Minor: " .. username
             else
-                return y * 2
+                return "Adult: " .. username
             end
         end
 
-        local greeting = greet(name)
-        local result = calculate(10, 5)
+        function calculate_stats(numbers)
+            local sum = 0
+            local count = #numbers
+
+            for i = 1, count do
+                sum = sum + numbers[i]
+            end
+
+            return sum / count
+        end
+
+        -- Usage examples
+        local user = {name = "Alice", age = 25}
+        local user_status = process_user(user)
+
+        local scores = {85, 92, 78, 96, 88}
+        local average = calculate_stats(scores)
+
+        -- Accessing nested config
+        local app_name = config.name
+        local debug_mode = config.settings.debug
+
+        -- String operations
+        local message = "Average score: " .. tostring(average)
+        local upper_message = string.upper(message)
+
+        print(user_status)
+        print(upper_message)
 
         -- This will cause a type error
-        local bad_calc = calculate("not", "numbers")
+        local bad_calc = calculate_stats("not a table")
     ]]
 
-    print("Analyzing demo code...")
-    print("Code:")
-    print(demo_code)
+    print("Analyzing enhanced demo code...")
+    print("Code preview:")
+    print(string.sub(demo_code, 1, 200) .. "...")
     print("\nAnalysis Results:")
 
     local results = verdict.analyze(demo_code)
     verdict.print_results(results)
 
     if results.global_scope then
-        print("=== Symbol Table ===")
+        print("=== Symbol Table Summary ===")
         local symbols = results.global_scope.symbols
+        local symbol_count = 0
         for name, type_info in pairs(symbols) do
-            print("  " .. name .. ": " .. tostring(type_info))
+            if not name:match("^[A-Z]") then -- Skip built-ins (typically capitalized)
+                print("  " .. name .. ": " .. tostring(type_info.type))
+                symbol_count = symbol_count + 1
+            end
         end
+        print("Total user-defined symbols: " .. symbol_count)
+    end
+end
+
+local function run_comprehensive_test()
+    print("=== Running Comprehensive Test ===")
+
+    local filename = "test_comprehensive.lua"
+    local file = io.open(filename, "r")
+
+    if not file then
+        print("Error: Could not find " .. filename)
+        print("Make sure the comprehensive test file exists.")
+        return
+    end
+
+    file:close()
+
+    print("Analyzing comprehensive test file: " .. filename)
+    local results = verdict.analyze_file(filename)
+    verdict.print_results(results)
+
+    if results.global_scope then
+        print("=== Comprehensive Analysis Summary ===")
+        local symbols = results.global_scope.symbols
+        local function_count = 0
+        local variable_count = 0
+
+        for name, symbol in pairs(symbols) do
+            if symbol.type.kind == "function" then
+                function_count = function_count + 1
+            elseif symbol.type.kind ~= "table" or not name:match("^[a-z]+$") then
+                -- Count variables (excluding standard library tables)
+                variable_count = variable_count + 1
+            end
+        end
+
+        print("Functions defined: " .. function_count)
+        print("Variables defined: " .. variable_count)
+        print("Total errors: " .. #results.errors)
+        print("Total warnings: " .. #results.warnings)
     end
 end
 
 -- Parse command line arguments
-local args = {...}
+local args = { ... }
 
 if #args == 0 then
     print_usage()
@@ -123,6 +233,7 @@ end
 local i = 1
 local filename = nil
 local verbose = false
+local strict_mode = false
 
 while i <= #args do
     local arg = args[i]
@@ -136,8 +247,13 @@ while i <= #args do
     elseif arg == "--demo" then
         run_demo()
         return
+    elseif arg == "--comprehensive" then
+        run_comprehensive_test()
+        return
     elseif arg == "-v" or arg == "--verbose" then
         verbose = true
+    elseif arg == "-s" or arg == "--strict" then
+        strict_mode = true
     elseif not filename and not arg:match("^%-") then
         filename = arg
     end
@@ -147,15 +263,49 @@ end
 
 if filename then
     print("Analyzing file: " .. filename)
-    local results = verdict.analyze_file(filename)
+
+    local options = {
+        strict_mode = strict_mode
+    }
+
+    local results
+    if strict_mode then
+        results = verdict.analyze_with_options(io.open(filename, "r"):read("*all"), options)
+        io.close()
+    else
+        results = verdict.analyze_file(filename)
+    end
+
     verdict.print_results(results)
 
     if verbose and results.global_scope then
-        print("\n=== Symbol Table ===")
+        print("\n=== Detailed Symbol Table ===")
         local symbols = results.global_scope.symbols
-        for name, type_info in pairs(symbols) do
-            print("  " .. name .. ": " .. tostring(type_info))
+        for name, symbol in pairs(symbols) do
+            local symbol_info = string.format("%-20s %s", name, tostring(symbol.type))
+            if symbol.used then
+                symbol_info = symbol_info .. " (used)"
+            else
+                symbol_info = symbol_info .. " (unused)"
+            end
+            print("  " .. symbol_info)
         end
+
+        if results.tokens then
+            print("\n=== Token Summary ===")
+            local token_counts = {}
+            for _, token in ipairs(results.tokens) do
+                token_counts[token.type] = (token_counts[token.type] or 0) + 1
+            end
+
+            for token_type, count in pairs(token_counts) do
+                print("  " .. token_type .. ": " .. count)
+            end
+        end
+    end
+
+    if strict_mode then
+        print("\n(Analyzed in strict mode - warnings treated as errors)")
     end
 else
     print("Error: No file specified")

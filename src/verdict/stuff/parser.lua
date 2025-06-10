@@ -25,8 +25,19 @@ function Parser.new(tokens)
     return setmetatable({
         tokens = tokens,
         position = 1,
-        current_token = tokens[1]
+        current_token = tokens[1],
+        errors = {}
     }, Parser)
+end
+
+--- Records a parse error but continues parsing
+---@param message string Error message
+function Parser:error(message)
+    table.insert(self.errors, {
+        message = message,
+        line = self.current_token.line,
+        column = self.current_token.column
+    })
 end
 
 --- Advances to the next token
@@ -61,16 +72,22 @@ function Parser:consume(expected_type)
         self:advance()
         return token
     else
-        error("Expected " .. expected_type .. " but got " .. self.current_token.type ..
-            " at line " .. (self.current_token.line or "?") ..
-            ", column " .. (self.current_token.column or "?"))
+        self:error("Expected " .. expected_type .. " but got " .. self.current_token.type)
+        return self.current_token -- Return current token and continue
     end
 end
 
 --- Skip newline tokens
 function Parser:skip_newlines()
-    while self.current_token.type == "NEWLINE" do
-        self:advance()
+    while self.current_token and
+        (self.current_token.type == "NEWLINE" or
+            (self.current_token.type == "KEYWORD" and self.current_token.value == "then") or
+            (self.current_token.type == "KEYWORD" and self.current_token.value == "do")) do
+        if self.current_token.type == "NEWLINE" then
+            self:advance()
+        else
+            break -- Keep keywords 'then' and 'do' for processing
+        end
     end
 end
 
@@ -88,7 +105,12 @@ function Parser:parse()
         end
         self:skip_newlines()
     end
-    return statements
+
+    -- Return both AST and any parse errors
+    return {
+        ast = statements,
+        errors = self.errors
+    }
 end
 
 --- Parses a statement
@@ -111,12 +133,25 @@ function Parser:parse_statement()
             return self:parse_while_statement()
         elseif self.current_token.value == "for" then
             return self:parse_for_statement()
+        elseif self.current_token.value == "repeat" then
+            return self:parse_repeat_statement()
         elseif self.current_token.value == "return" then
             return self:parse_return_statement()
+        elseif self.current_token.value == "break" then
+            self:advance()
+            return create_node("break_statement", {}, self.current_token.line, self.current_token.column)
+        elseif self.current_token.value == "goto" then
+            return self:parse_goto_statement()
+        elseif self.current_token.value == "do" then
+            return self:parse_do_block()
         end
+    elseif self.current_token.type == "DOUBLE_COLON" then
+        return self:parse_label()
     elseif self.current_token.type == "IDENTIFIER" then
         -- Check if it's an assignment or function call
-        if self:peek_token().type == "ASSIGN" then
+        if self:peek_token().type == "ASSIGN" or
+            self:peek_token().type == "DOT" or
+            self:peek_token().type == "LEFT_BRACKET" then
             return self:parse_assignment()
         else
             -- Treat as expression statement (function call)
@@ -128,8 +163,83 @@ function Parser:parse_statement()
 
     -- If we can't parse a statement, try parsing as expression
     local expr = self:parse_expression()
-    return create_node("expression_statement", { expr = expr },
-        self.current_token.line, self.current_token.column)
+    if expr then
+        return create_node("expression_statement", { expr = expr },
+            self.current_token.line, self.current_token.column)
+    end
+
+    return nil
+end
+
+--- Parses a label ::name::
+function Parser:parse_label()
+    local line, column = self.current_token.line, self.current_token.column
+    self:consume("DOUBLE_COLON")
+    local name = self:consume("IDENTIFIER")
+    self:consume("DOUBLE_COLON")
+
+    return create_node("label", { name = name.value }, line, column)
+end
+
+--- Parses a goto statement
+function Parser:parse_goto_statement()
+    local line, column = self.current_token.line, self.current_token.column
+    self:consume("KEYWORD") -- goto
+    local label = self:consume("IDENTIFIER")
+
+    return create_node("goto_statement", { label = label.value }, line, column)
+end
+
+--- Parses a do block
+function Parser:parse_do_block()
+    local line, column = self.current_token.line, self.current_token.column
+    self:consume("KEYWORD") -- do
+    self:skip_newlines()
+
+    local body = {}
+    while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+        if self.current_token.type == "EOF" then
+            self:error("Expected 'end' to close 'do' block")
+            break
+        end
+        local stmt = self:parse_statement()
+        if stmt then
+            table.insert(body, stmt)
+        end
+        self:skip_newlines()
+    end
+
+    self:consume("KEYWORD") -- end
+
+    return create_node("do_block", { body = body }, line, column)
+end
+
+--- Parses a repeat statement
+function Parser:parse_repeat_statement()
+    local line, column = self.current_token.line, self.current_token.column
+    self:consume("KEYWORD") -- repeat
+    self:skip_newlines()
+
+    local body = {}
+    while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "until" do
+        if self.current_token.type == "EOF" then
+            self:error("Expected 'until' to close 'repeat' block")
+            break
+        end
+        local stmt = self:parse_statement()
+        if stmt then
+            table.insert(body, stmt)
+        end
+        self:skip_newlines()
+    end
+
+    self:consume("KEYWORD") -- until
+    local condition = self:parse_expression()
+
+    return create_node("repeat_statement", {
+        body = body,
+        condition = condition
+    }, line, column)
 end
 
 --- Parses a local statement
@@ -146,11 +256,19 @@ function Parser:parse_local_statement()
         self:consume("LEFT_PAREN")
 
         local params = {}
-        while self.current_token.type == "IDENTIFIER" do
-            table.insert(params, self.current_token.value)
-            self:advance()
-            if self.current_token.type == "COMMA" then
+        local has_varargs = false
+
+        while self.current_token.type == "IDENTIFIER" or self.current_token.type == "VARARGS" do
+            if self.current_token.type == "VARARGS" then
+                has_varargs = true
                 self:advance()
+                break
+            else
+                table.insert(params, self.current_token.value)
+                self:advance()
+                if self.current_token.type == "COMMA" then
+                    self:advance()
+                end
             end
         end
 
@@ -159,6 +277,10 @@ function Parser:parse_local_statement()
 
         local body = {}
         while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+            if self.current_token.type == "EOF" then
+                self:error("Expected 'end' to close function")
+                break
+            end
             local stmt = self:parse_statement()
             if stmt then
                 table.insert(body, stmt)
@@ -171,24 +293,43 @@ function Parser:parse_local_statement()
         return create_node("local_function_def", {
             name = name_token.value,
             params = params,
+            has_varargs = has_varargs,
             body = body
         }, line, column)
     else
         -- Regular local variable declaration/assignment
-        local name_token = self:consume("IDENTIFIER")
+        local names = {}
 
+        repeat
+            local name_token = self:consume("IDENTIFIER")
+            table.insert(names, name_token.value)
+
+            if self.current_token.type == "COMMA" then
+                self:advance()
+            else
+                break
+            end
+        until false
+
+        local exprs = {}
         if self.current_token.type == "ASSIGN" then
             self:consume("ASSIGN")
-            local expr = self:parse_expression()
-            return create_node("local_assignment", {
-                name = name_token.value,
-                expr = expr
-            }, line, column)
-        else
-            return create_node("local_declaration", {
-                name = name_token.value
-            }, line, column)
+
+            repeat
+                table.insert(exprs, self:parse_expression())
+
+                if self.current_token.type == "COMMA" then
+                    self:advance()
+                else
+                    break
+                end
+            until false
         end
+
+        return create_node("local_assignment", {
+            names = names,
+            exprs = exprs
+        }, line, column)
     end
 end
 
@@ -196,14 +337,56 @@ end
 ---@return table The AST node for the assignment
 function Parser:parse_assignment()
     local line, column = self.current_token.line, self.current_token.column
-    local name_token = self:consume("IDENTIFIER")
-    self:consume("ASSIGN")
-    local expr = self:parse_expression()
+    local targets = {}
 
-    return create_node("assignment", {
-        name = name_token.value,
-        expr = expr
-    }, line, column)
+    -- Parse left-hand side (can be multiple targets)
+    repeat
+        local target = self:parse_primary_expression()
+        table.insert(targets, target)
+
+        self:skip_newlines()
+        if self.current_token.type == "COMMA" then
+            self:advance()
+            self:skip_newlines()
+        else
+            break
+        end
+    until false
+
+    self:skip_newlines()
+    if self.current_token.type == "ASSIGN" then
+        self:advance()
+        self:skip_newlines()
+
+        -- Parse right-hand side expressions
+        local exprs = {}
+        repeat
+            table.insert(exprs, self:parse_expression())
+            self:skip_newlines()
+
+            if self.current_token.type == "COMMA" then
+                self:advance()
+                self:skip_newlines()
+            else
+                break
+            end
+        until false
+
+        return create_node("assignment", {
+            targets = targets,
+            exprs = exprs
+        }, line, column)
+    else
+        -- This was just a primary expression, not an assignment
+        if #targets == 1 then
+            return create_node("expression_statement", {
+                expr = targets[1]
+            }, line, column)
+        else
+            self:error("Expected '=' after variable list")
+            return create_node("error", {}, line, column)
+        end
+    end
 end
 
 --- Parses a function definition
@@ -212,15 +395,44 @@ function Parser:parse_function_definition()
     local line, column = self.current_token.line, self.current_token.column
     self:consume("KEYWORD") -- consume 'function'
 
-    local name_token = self:consume("IDENTIFIER")
+    -- Parse function name (can be dotted like foo.bar.baz)
+    local name_parts = {}
+    table.insert(name_parts, self:consume("IDENTIFIER").value)
+
+    while self.current_token.type == "DOT" do
+        self:advance()
+        table.insert(name_parts, self:consume("IDENTIFIER").value)
+    end
+
+    -- Check for method definition (colon)
+    local is_method = false
+    if self.current_token.type == "COLON" then
+        self:advance()
+        table.insert(name_parts, self:consume("IDENTIFIER").value)
+        is_method = true
+    end
+
     self:consume("LEFT_PAREN")
 
     local params = {}
-    while self.current_token.type == "IDENTIFIER" do
-        table.insert(params, self.current_token.value)
-        self:advance()
-        if self.current_token.type == "COMMA" then
+    local has_varargs = false
+
+    -- If it's a method, add 'self' as the first parameter
+    if is_method then
+        table.insert(params, "self")
+    end
+
+    while self.current_token.type == "IDENTIFIER" or self.current_token.type == "VARARGS" do
+        if self.current_token.type == "VARARGS" then
+            has_varargs = true
             self:advance()
+            break
+        else
+            table.insert(params, self.current_token.value)
+            self:advance()
+            if self.current_token.type == "COMMA" then
+                self:advance()
+            end
         end
     end
 
@@ -229,6 +441,10 @@ function Parser:parse_function_definition()
 
     local body = {}
     while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+        if self.current_token.type == "EOF" then
+            self:error("Expected 'end' to close function")
+            break
+        end
         local stmt = self:parse_statement()
         if stmt then
             table.insert(body, stmt)
@@ -239,8 +455,10 @@ function Parser:parse_function_definition()
     self:consume("KEYWORD") -- consume 'end'
 
     return create_node("function_def", {
-        name = name_token.value,
+        name_parts = name_parts,
+        is_method = is_method,
         params = params,
+        has_varargs = has_varargs,
         body = body
     }, line, column)
 end
@@ -257,6 +475,10 @@ function Parser:parse_while_statement()
 
     local body = {}
     while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+        if self.current_token.type == "EOF" then
+            self:error("Expected 'end' to close while loop")
+            break
+        end
         local stmt = self:parse_statement()
         if stmt then
             table.insert(body, stmt)
@@ -299,6 +521,10 @@ function Parser:parse_for_statement()
 
         local body = {}
         while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+            if self.current_token.type == "EOF" then
+                self:error("Expected 'end' to close for loop")
+                break
+            end
             local stmt = self:parse_statement()
             if stmt then
                 table.insert(body, stmt)
@@ -308,7 +534,7 @@ function Parser:parse_for_statement()
 
         self:consume("KEYWORD") -- consume 'end'
 
-        return create_node("for_statement", {
+        return create_node("numeric_for_statement", {
             var = var_token.value,
             start = start_expr,
             finish = end_expr,
@@ -325,12 +551,26 @@ function Parser:parse_for_statement()
         end
 
         self:consume("KEYWORD") -- consume 'in'
-        local iterator = self:parse_expression()
+
+        local iterators = {}
+        repeat
+            table.insert(iterators, self:parse_expression())
+            if self.current_token.type == "COMMA" then
+                self:advance()
+            else
+                break
+            end
+        until false
+
         self:consume("KEYWORD") -- consume 'do'
         self:skip_newlines()
 
         local body = {}
         while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+            if self.current_token.type == "EOF" then
+                self:error("Expected 'end' to close for loop")
+                break
+            end
             local stmt = self:parse_statement()
             if stmt then
                 table.insert(body, stmt)
@@ -340,9 +580,9 @@ function Parser:parse_for_statement()
 
         self:consume("KEYWORD") -- consume 'end'
 
-        return create_node("for_statement", {
+        return create_node("generic_for_statement", {
             vars = vars,
-            iterator = iterator,
+            iterators = iterators,
             body = body
         }, line, column)
     end
@@ -363,11 +603,44 @@ function Parser:parse_if_statement()
         (self.current_token.value ~= "end" and
             self.current_token.value ~= "else" and
             self.current_token.value ~= "elseif") do
+        if self.current_token.type == "EOF" then
+            self:error("Expected 'end', 'else', or 'elseif'")
+            break
+        end
         local stmt = self:parse_statement()
         if stmt then
             table.insert(then_block, stmt)
         end
         self:skip_newlines()
+    end
+
+    local elseif_blocks = {}
+    while self.current_token.type == "KEYWORD" and self.current_token.value == "elseif" do
+        self:advance()          -- consume 'elseif'
+        local elseif_condition = self:parse_expression()
+        self:consume("KEYWORD") -- consume 'then'
+        self:skip_newlines()
+
+        local elseif_body = {}
+        while self.current_token.type ~= "KEYWORD" or
+            (self.current_token.value ~= "end" and
+                self.current_token.value ~= "else" and
+                self.current_token.value ~= "elseif") do
+            if self.current_token.type == "EOF" then
+                self:error("Expected 'end', 'else', or 'elseif'")
+                break
+            end
+            local stmt = self:parse_statement()
+            if stmt then
+                table.insert(elseif_body, stmt)
+            end
+            self:skip_newlines()
+        end
+
+        table.insert(elseif_blocks, {
+            condition = elseif_condition,
+            body = elseif_body
+        })
     end
 
     local else_block = nil
@@ -376,6 +649,10 @@ function Parser:parse_if_statement()
         self:skip_newlines()
         else_block = {}
         while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+            if self.current_token.type == "EOF" then
+                self:error("Expected 'end' to close if statement")
+                break
+            end
             local stmt = self:parse_statement()
             if stmt then
                 table.insert(else_block, stmt)
@@ -389,6 +666,7 @@ function Parser:parse_if_statement()
     return create_node("if_statement", {
         condition = condition,
         then_block = then_block,
+        elseif_blocks = elseif_blocks,
         else_block = else_block
     }, line, column)
 end
@@ -399,19 +677,36 @@ function Parser:parse_return_statement()
     local line, column = self.current_token.line, self.current_token.column
     self:consume("KEYWORD") -- consume 'return'
 
-    local expr = nil
-    if self.current_token.type ~= "NEWLINE" and self.current_token.type ~= "EOF" then
-        expr = self:parse_expression()
+    local exprs = {}
+    if self.current_token.type ~= "NEWLINE" and
+        self.current_token.type ~= "EOF" and
+        self.current_token.type ~= "KEYWORD" then
+        repeat
+            table.insert(exprs, self:parse_expression())
+            if self.current_token.type == "COMMA" then
+                self:advance()
+            else
+                break
+            end
+        until false
     end
 
     return create_node("return_statement", {
-        expr = expr
+        exprs = exprs
     }, line, column)
 end
 
 --- Parses an expression
 ---@return table The AST node for the expression
 function Parser:parse_expression()
+    -- Skip any newlines before starting expression parsing
+    self:skip_newlines()
+
+    if self.current_token.type == "NEWLINE" or self.current_token.type == "EOF" then
+        self:error("Unexpected token in expression: " .. self.current_token.type)
+        return create_node("error", {}, self.current_token.line, self.current_token.column)
+    end
+
     return self:parse_or_expression()
 end
 
@@ -499,10 +794,11 @@ end
 function Parser:parse_concatenation_expression()
     local left = self:parse_additive_expression()
 
-    while self.current_token.type == "CONCAT" do
+    -- Right-associative
+    if self.current_token.type == "CONCAT" then
         local op_token = self.current_token
         self:advance()
-        local right = self:parse_additive_expression()
+        local right = self:parse_concatenation_expression() -- Recursive for right-associativity
         left = create_node("binary_op", {
             left = left,
             right = right,
@@ -557,22 +853,141 @@ end
 ---@return table The AST node for the expression
 function Parser:parse_unary_expression()
     if self.current_token.type == "MINUS" or
-        (self.current_token.type == "KEYWORD" and self.current_token.value == "not") then
+        (self.current_token.type == "KEYWORD" and self.current_token.value == "not") or
+        self.current_token.type == "LENGTH" then -- Handle # operator
         local op_token = self.current_token
         self:advance()
         local expr = self:parse_unary_expression()
         return create_node("unary_op", {
             expr = expr,
-            op = op_token.value
+            op = op_token.value or "#" -- Use # for LENGTH tokens
         }, op_token.line, op_token.column)
     else
-        return self:parse_primary_expression()
+        return self:parse_power_expression()
     end
 end
 
---- Parses a primary expression
+--- Parses a power expression (right-associative)
 ---@return table The AST node for the expression
+function Parser:parse_power_expression()
+    local left = self:parse_primary_expression()
+
+    if self.current_token.type == "POWER" then
+        local op_token = self.current_token
+        self:advance()
+        local right = self:parse_unary_expression() -- Right-associative
+        left = create_node("binary_op", {
+            left = left,
+            right = right,
+            op = op_token.value
+        }, op_token.line, op_token.column)
+    end
+
+    return left
+end
+
+--- Parses a primary expression with field access and calls
+---@return table|nil The AST node for the expression
 function Parser:parse_primary_expression()
+    local node = self:parse_base_primary()
+
+    if not node then
+        return nil
+    end
+
+    -- Handle postfix operations (field access, indexing, function calls)
+    while true do
+        self:skip_newlines()
+        if self.current_token.type == "DOT" then
+            local line, column = self.current_token.line, self.current_token.column
+            self:advance()
+            local field = self:consume("IDENTIFIER")
+            node = create_node("field_access", {
+                object = node,
+                field = field.value
+            }, line, column)
+        elseif self.current_token.type == "LEFT_BRACKET" then
+            local line, column = self.current_token.line, self.current_token.column
+            self:advance()
+            local index = self:parse_expression()
+            self:consume("RIGHT_BRACKET")
+            node = create_node("index_access", {
+                object = node,
+                index = index
+            }, line, column)
+        elseif self.current_token.type == "LEFT_PAREN" then
+            local line, column = self.current_token.line, self.current_token.column
+            self:advance()
+            local args = {}
+
+            while self.current_token.type ~= "RIGHT_PAREN" do
+                if self.current_token.type == "EOF" then
+                    self:error("Expected ')' to close function call")
+                    break
+                end
+                table.insert(args, self:parse_expression())
+                if self.current_token.type == "COMMA" then
+                    self:advance()
+                elseif self.current_token.type ~= "RIGHT_PAREN" then
+                    self:error("Expected ',' or ')' in function call")
+                    break
+                end
+            end
+
+            self:consume("RIGHT_PAREN")
+            node = create_node("function_call", {
+                func = node,
+                args = args
+            }, line, column)
+        elseif self.current_token.type == "COLON" then
+            -- Method call syntax obj:method(args)
+            local line, column = self.current_token.line, self.current_token.column
+            self:advance()
+            local method = self:consume("IDENTIFIER")
+
+            if self.current_token.type == "LEFT_PAREN" then
+                self:advance()
+                local args = {}
+
+                while self.current_token.type ~= "RIGHT_PAREN" do
+                    if self.current_token.type == "EOF" then
+                        self:error("Expected ')' to close method call")
+                        break
+                    end
+                    table.insert(args, self:parse_expression())
+                    if self.current_token.type == "COMMA" then
+                        self:advance()
+                    elseif self.current_token.type ~= "RIGHT_PAREN" then
+                        self:error("Expected ',' or ')' in method call")
+                        break
+                    end
+                end
+
+                self:consume("RIGHT_PAREN")
+                node = create_node("method_call", {
+                    object = node,
+                    method = method.value,
+                    args = args
+                }, line, column)
+            else
+                -- obj:method without parentheses (single argument)
+                node = create_node("method_call", {
+                    object = node,
+                    method = method.value,
+                    args = {}
+                }, line, column)
+            end
+        else
+            break
+        end
+    end
+
+    return node
+end
+
+--- Parses base primary expressions
+---@return table The AST node for the expression
+function Parser:parse_base_primary()
     local token = self.current_token
 
     if token.type == "NUMBER" then
@@ -599,32 +1014,14 @@ function Parser:parse_primary_expression()
             type = "nil",
             value = nil
         }, token.line, token.column)
+    elseif token.type == "VARARGS" then
+        self:advance()
+        return create_node("varargs", {}, token.line, token.column)
     elseif token.type == "IDENTIFIER" then
         self:advance()
-
-        -- Check for function call
-        if self.current_token.type == "LEFT_PAREN" then
-            self:advance() -- consume '('
-            local args = {}
-
-            while self.current_token.type ~= "RIGHT_PAREN" do
-                table.insert(args, self:parse_expression())
-                if self.current_token.type == "COMMA" then
-                    self:advance()
-                end
-            end
-
-            self:consume("RIGHT_PAREN")
-
-            return create_node("function_call", {
-                func = create_node("identifier", { name = token.value }, token.line, token.column),
-                args = args
-            }, token.line, token.column)
-        else
-            return create_node("identifier", {
-                name = token.value
-            }, token.line, token.column)
-        end
+        return create_node("identifier", {
+            name = token.value
+        }, token.line, token.column)
     elseif token.type == "LEFT_PAREN" then
         self:advance() -- consume '('
         local expr = self:parse_expression()
@@ -632,10 +1029,62 @@ function Parser:parse_primary_expression()
         return expr
     elseif token.type == "LEFT_BRACE" then
         return self:parse_table_constructor()
+    elseif token.type == "KEYWORD" and token.value == "function" then
+        return self:parse_function_expression()
     else
-        error("Unexpected token: " .. token.type .. " at line " .. (token.line or "?") ..
-            ", column " .. (token.column or "?"))
+        self:error("Unexpected token in expression: " .. token.type)
+        self:advance() -- Skip the problematic token
+        return create_node("error", {}, token.line, token.column)
     end
+end
+
+--- Parses a function expression
+---@return table The AST node for the function expression
+function Parser:parse_function_expression()
+    local line, column = self.current_token.line, self.current_token.column
+    self:consume("KEYWORD") -- function
+    self:consume("LEFT_PAREN")
+
+    local params = {}
+    local has_varargs = false
+
+    while self.current_token.type == "IDENTIFIER" or self.current_token.type == "VARARGS" do
+        if self.current_token.type == "VARARGS" then
+            has_varargs = true
+            self:advance()
+            break
+        else
+            table.insert(params, self.current_token.value)
+            self:advance()
+            if self.current_token.type == "COMMA" then
+                self:advance()
+            end
+        end
+    end
+
+    self:consume("RIGHT_PAREN")
+    self:skip_newlines()
+
+    local body = {}
+    while self.current_token.type ~= "KEYWORD" or self.current_token.value ~= "end" do
+        if self.current_token.type == "EOF" then
+            self:error("Expected 'end' to close function expression")
+            break
+        end
+        local stmt = self:parse_statement()
+        if stmt then
+            table.insert(body, stmt)
+        end
+        self:skip_newlines()
+    end
+
+    self:consume("KEYWORD") -- end
+
+    return create_node("function_expression", {
+        params = params,
+        has_varargs = has_varargs,
+        body = body
+    }, line, column)
 end
 
 --- Parses a table constructor
@@ -643,17 +1092,85 @@ end
 function Parser:parse_table_constructor()
     local line, column = self.current_token.line, self.current_token.column
     self:consume("LEFT_BRACE")
+    self:skip_newlines() -- Skip newlines after opening brace
 
     local fields = {}
-    while self.current_token.type ~= "RIGHT_BRACE" do
-        -- For now, just parse expressions as array elements
-        table.insert(fields, self:parse_expression())
-        if self.current_token.type == "COMMA" then
-            self:advance()
-        end
+
+    -- Empty table case
+    if self.current_token.type == "RIGHT_BRACE" then
+        self:advance()
+        return create_node("table_constructor", {
+            fields = fields
+        }, line, column)
     end
 
-    self:consume("RIGHT_BRACE")
+    while true do
+        -- Skip any newlines before field parsing
+        self:skip_newlines()
+
+        -- Check if we've reached the end of the table
+        if self.current_token.type == "RIGHT_BRACE" then
+            self:advance() -- Consume the closing brace
+            break
+        end
+
+        if self.current_token.type == "EOF" then
+            self:error("Expected '}' to close table constructor")
+            break
+        end
+
+        local field = nil
+
+        -- Check for [expr] = expr syntax
+        if self.current_token.type == "LEFT_BRACKET" then
+            self:advance()
+            local key = self:parse_expression()
+            self:consume("RIGHT_BRACKET")
+            self:consume("ASSIGN")
+            local value = self:parse_expression()
+            field = create_node("table_field", {
+                type = "indexed",
+                key = key,
+                value = value
+            }, line, column)
+            -- Check for name = expr syntax
+        elseif self.current_token.type == "IDENTIFIER" and self:peek_token().type == "ASSIGN" then
+            local key = self.current_token.value
+            self:advance()
+            self:consume("ASSIGN")
+            local value = self:parse_expression()
+            field = create_node("table_field", {
+                type = "named",
+                key = key,
+                value = value
+            }, line, column)
+        else
+            -- Just an expression (array-style)
+            local value = self:parse_expression()
+            field = create_node("table_field", {
+                type = "array",
+                value = value
+            }, line, column)
+        end
+
+        table.insert(fields, field)
+
+        -- Handle field separators (comma or semicolon)
+        self:skip_newlines() -- Skip newlines before looking for separator
+        if self.current_token.type == "COMMA" or self.current_token.type == "SEMICOLON" then
+            self:advance()
+            self:skip_newlines() -- Skip newlines after separator
+        elseif self.current_token.type ~= "RIGHT_BRACE" then
+            -- If not a separator and not the end, report error but continue
+            self:error("Expected ',', ';', or '}' in table constructor")
+            -- Try to advance to recover
+            if self.current_token.type ~= "EOF" then
+                self:advance()
+            else
+                break
+            end
+        end
+    end
 
     return create_node("table_constructor", {
         fields = fields

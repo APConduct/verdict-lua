@@ -21,9 +21,10 @@ local TOKEN_TYPES = {
     MINUS = "MINUS",       -- -
     MULTIPLY = "MULTIPLY", -- *
     DIVIDE = "DIVIDE",     -- /
-    MODULO = "MODULO",
-    POWER = "POWER",
-    CONCAT = "CONCAT",
+    MODULO = "MODULO",     -- %
+    POWER = "POWER",       -- ^
+    CONCAT = "CONCAT",     -- ..
+    VARARGS = "VARARGS",   -- ...
 
     -- Comparison
     EQUAL = "EQUAL",                 -- ==
@@ -32,6 +33,7 @@ local TOKEN_TYPES = {
     LESS_EQUAL = "LESS_EQUAL",       -- <=
     GREATER_THAN = "GREATER_THAN",   -- >
     GREATER_EQUAL = "GREATER_EQUAL", -- >=
+    LENGTH = "LENGTH",               -- #
 
     -- Assignment
     ASSIGN = "ASSIGN",
@@ -50,7 +52,9 @@ local TOKEN_TYPES = {
     RIGHT_BRACKET = "RIGHT_BRACKET", -- ]
     SEMICOLON = "SEMICOLON",         -- ;
     COMMA = "COMMA",                 -- ,
-    DOT = "DOT",
+    DOT = "DOT",                     -- .
+    COLON = "COLON",                 -- :
+    DOUBLE_COLON = "DOUBLE_COLON",   -- ::
 
     -- Special
     EOF = "EOF",
@@ -63,11 +67,12 @@ local KEYWORDS = {
     ["break"] = true,
     ["do"] = true,
     ["else"] = true,
-    ["elsif"] = true,
+    ["elseif"] = true,
     ["end"] = true,
     ["false"] = true,
     ["for"] = true,
     ["function"] = true,
+    ["goto"] = true,
     ["if"] = true,
     ["in"] = true,
     ["local"] = true,
@@ -163,25 +168,92 @@ function Lexer:skip_whitespace()
     end
 end
 
---- Reads a number token
+--- Reads a number token (including hex and scientific notation)
 function Lexer:read_number()
     local start_line, start_column = self.line, self.column
     local number_str = ""
 
-    while self:current_char() and (self:current_char():match("%d") or self:current_char() == ".") do
-        number_str = number_str .. self:current_char()
+    -- Handle hex numbers (0x...)
+    if self:current_char() == '0' and (self:peek_char() == 'x' or self:peek_char() == 'X') then
+        number_str = number_str .. self:current_char() -- 0
         self:advance()
+        number_str = number_str .. self:current_char() -- x
+        self:advance()
+
+        while self:current_char() and self:current_char():match("[%da-fA-F]") do
+            number_str = number_str .. self:current_char()
+            self:advance()
+        end
+    else
+        -- Regular decimal numbers
+        while self:current_char() and (self:current_char():match("%d") or self:current_char() == ".") do
+            number_str = number_str .. self:current_char()
+            self:advance()
+        end
+
+        -- Scientific notation (e.g., 1e5, 1.2e-3)
+        if self:current_char() and (self:current_char():lower() == 'e') then
+            number_str = number_str .. self:current_char()
+            self:advance()
+
+            if self:current_char() and (self:current_char() == '+' or self:current_char() == '-') then
+                number_str = number_str .. self:current_char()
+                self:advance()
+            end
+
+            while self:current_char() and self:current_char():match("%d") do
+                number_str = number_str .. self:current_char()
+                self:advance()
+            end
+        end
     end
 
     return create_token(TOKEN_TYPES.NUMBER, tonumber(number_str), start_line, start_column)
 end
 
---- Reads a string token
+--- Reads a string token (including long strings)
 ---@return table the String token
 function Lexer:read_string()
     local start_line, start_column = self.line, self.column
     local quote = self:current_char()
-    self:advance() -- Slip opening quote
+
+    -- Handle long strings [[...]]
+    if quote == '[' then
+        local equals = ""
+        local pos = self.position + 1
+
+        -- Count equals signs [===[...]==]
+        while pos <= #self.source and self.source:sub(pos, pos) == '=' do
+            equals = equals .. '='
+            pos = pos + 1
+        end
+
+        if pos <= #self.source and self.source:sub(pos, pos) == '[' then
+            -- This is a long string
+            self.position = pos + 1
+            self.column = self.column + #equals + 2
+
+            local string_value = ""
+            local close_pattern = ']' .. equals .. ']'
+
+            while self.position <= #self.source do
+                local remaining = self.source:sub(self.position)
+                if remaining:sub(1, #close_pattern) == close_pattern then
+                    self.position = self.position + #close_pattern
+                    self.column = self.column + #close_pattern
+                    break
+                end
+
+                string_value = string_value .. self:current_char()
+                self:advance()
+            end
+
+            return create_token(TOKEN_TYPES.STRING, string_value, start_line, start_column)
+        end
+    end
+
+    -- Regular string
+    self:advance() -- Skip opening quote
 
     local string_value = ""
     while self:current_char() and self:current_char() ~= quote do
@@ -198,6 +270,8 @@ function Lexer:read_string()
                 string_value = string_value .. "\\"
             elseif escape_char == quote then
                 string_value = string_value .. quote
+            elseif escape_char == '0' then
+                string_value = string_value .. '\0'
             else
                 string_value = string_value .. escape_char
             end
@@ -285,11 +359,29 @@ function Lexer:tokenize()
             self:advance()
         elseif char == '.' then
             if self:peek_char() == '.' then
-                table.insert(self.tokens, create_token(TOKEN_TYPES.CONCAT, "..", self.line, self.column))
+                if self:peek_char(2) == '.' then
+                    -- Varargs ...
+                    table.insert(self.tokens, create_token(TOKEN_TYPES.VARARGS, "...", self.line, self.column))
+                    self:advance()
+                    self:advance()
+                    self:advance()
+                else
+                    -- Concatenation ..
+                    table.insert(self.tokens, create_token(TOKEN_TYPES.CONCAT, "..", self.line, self.column))
+                    self:advance()
+                    self:advance()
+                end
+            else
+                table.insert(self.tokens, create_token(TOKEN_TYPES.DOT, char, self.line, self.column))
+                self:advance()
+            end
+        elseif char == ':' then
+            if self:peek_char() == ':' then
+                table.insert(self.tokens, create_token(TOKEN_TYPES.DOUBLE_COLON, "::", self.line, self.column))
                 self:advance()
                 self:advance()
             else
-                table.insert(self.tokens, create_token(TOKEN_TYPES.DOT, char, self.line, self.column))
+                table.insert(self.tokens, create_token(TOKEN_TYPES.COLON, char, self.line, self.column))
                 self:advance()
             end
         elseif char == '=' then
@@ -347,6 +439,9 @@ function Lexer:tokenize()
             self:advance()
         elseif char == ';' then
             table.insert(self.tokens, create_token(TOKEN_TYPES.SEMICOLON, char, self.line, self.column))
+            self:advance()
+        elseif char == '#' then
+            table.insert(self.tokens, create_token(TOKEN_TYPES.LENGTH, char, self.line, self.column))
             self:advance()
         elseif char == ',' then
             table.insert(self.tokens, create_token(TOKEN_TYPES.COMMA, char, self.line, self.column))

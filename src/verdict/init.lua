@@ -20,7 +20,8 @@ function verdict.analyze(source)
         errors = {},
         warnings = {},
         ast = nil,
-        tokens = nil
+        tokens = nil,
+        parse_errors = {}
     }
 
     -- Step 1: Lexical analysis
@@ -42,59 +43,70 @@ function verdict.analyze(source)
 
     -- Step 2: Parsing
     local parser = Parser.new(tokens)
-    local ast
-    ok, ast = pcall(function()
+    local parse_result
+    ok, parse_result = pcall(function()
         return parser:parse()
     end)
 
     if not ok then
         table.insert(results.errors, {
             type = "parser_error",
-            message = ast, -- The error message
+            message = parse_result, -- The error message
             phase = "parsing"
         })
         return results
     end
 
-    results.ast = ast
+    -- Handle the new parser structure
+    if parse_result.ast then
+        results.ast = parse_result.ast
+        results.parse_errors = parse_result.errors or {}
+    else
+        -- Fallback for old parser format
+        results.ast = parse_result
+    end
+
+    -- Add parse errors to results
+    for _, parse_error in ipairs(results.parse_errors) do
+        table.insert(results.errors, {
+            type = "parser_error",
+            message = parse_error.message,
+            line = parse_error.line,
+            column = parse_error.column,
+            phase = "parsing"
+        })
+    end
 
     -- Step 3: Type analysis
+    if results.ast then
+        local type_inference = analyzer.TypeInference.new()
+        local analysis_result = type_inference:analyze(results.ast)
 
-    -- Uncomment the following lines to debug the AST structure
-    -- for i, stmt in ipairs(ast or {}) do
-    --     print(i .. ". " .. stmt.type .. " - " .. (stmt.data and stmt.data.name or "no name"))
-    -- end
-    -- print("===========================")
+        -- Convert analyzer errors and warnings to our result format
+        for _, error in ipairs(analysis_result.errors or {}) do
+            table.insert(results.errors, {
+                type = "type_error",
+                message = error.message,
+                line = error.line,
+                column = error.column,
+                phase = "type_analysis"
+            })
+        end
 
-    local type_inference = analyzer.TypeInference.new()
-    local analysis_result = type_inference:analyze(ast)
+        -- Add warnings to results
+        for _, warning in ipairs(analysis_result.warnings or {}) do
+            table.insert(results.warnings, {
+                type = "type_warning",
+                message = warning.message,
+                line = warning.line,
+                column = warning.column,
+                phase = "type_analysis"
+            })
+        end
 
-    -- Convert analyzer errors and warnings to our result format
-    for _, error in ipairs(analysis_result.errors or {}) do
-        table.insert(results.errors, {
-            type = "type_error",
-            message = error.message,
-            line = error.line,
-            column = error.column,
-            phase = "type_analysis"
-        })
+        -- Add symbol table for inspection
+        results.global_scope = type_inference.global_scope
     end
-
-    -- Add warnings to results
-    results.warnings = {}
-    for _, warning in ipairs(analysis_result.warnings or {}) do
-        table.insert(results.warnings, {
-            type = "type_warning",
-            message = warning.message,
-            line = warning.line,
-            column = warning.column,
-            phase = "type_analysis"
-        })
-    end
-
-
-    -- Add symbol table for inspection
-    results.global_scope = type_inference.global_scope
 
     return results
 end
@@ -110,7 +122,8 @@ function verdict.analyze_file(filename)
                 type = "file_error",
                 message = "Could not open file: " .. filename,
                 phase = "file_reading"
-            } }
+            } },
+            warnings = {}
         }
     end
 
@@ -145,11 +158,61 @@ function verdict.print_results(results)
     if #results.warnings > 0 then
         print("⚠ Found " .. #results.warnings .. " warning(s):")
         for i, warning in ipairs(results.warnings) do
-            print("  " .. i .. ". " .. warning.message)
+            local location = ""
+            if warning.line then
+                location = " (line " .. warning.line
+                if warning.column then
+                    location = location .. ", column " .. warning.column
+                end
+                location = location .. ")"
+            end
+            print("  " .. i .. ". [" .. (warning.phase or "type_analysis") .. "] " .. warning.message .. location)
         end
     end
 
     print()
+end
+
+--- Enhanced analysis with additional options
+---@param source string Source code to analyze
+---@param options table Analysis options
+---@return table Analysis results
+function verdict.analyze_with_options(source, options)
+    options = options or {}
+
+    local results = verdict.analyze(source)
+
+    -- Additional analysis based on options
+    if options.check_complexity then
+        -- TODO: Add complexity analysis here
+    end
+
+    if options.check_performance then
+        -- TODO: Add performance analysis here
+    end
+
+    if options.strict_mode then
+        -- Convert some warnings to errors
+        local strict_errors = {}
+        local remaining_warnings = {}
+
+        for _, warning in ipairs(results.warnings) do
+            if warning.type == "type_warning" then
+                warning.type = "type_error"
+                table.insert(strict_errors, warning)
+            else
+                table.insert(remaining_warnings, warning)
+            end
+        end
+
+        for _, error in ipairs(strict_errors) do
+            table.insert(results.errors, error)
+        end
+
+        results.warnings = remaining_warnings
+    end
+
+    return results
 end
 
 return verdict
