@@ -1,4 +1,3 @@
--- tests/helpers/generate_fixtures.lua
 local function generate_large_file(file_path, size)
     local file = io.open(file_path, "w")
     if not file then

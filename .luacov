@@ -1,0 +1,14 @@
+return {
+  include = {
+    "src/verdict"
+  },
+  exclude = {
+    "tests"
+  },
+  modules = {
+    ["verdict"] = "src/verdict/init.lua",
+    ["verdict.analyzer"] = "src/verdict/analyzer.lua",
+    ["verdict.stuff.lexer"] = "src/verdict/stuff/lexer.lua",
+    ["verdict.stuff.parser"] = "src/verdict/stuff/parser.lua",
+  }
+}

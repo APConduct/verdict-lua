@@ -1,4 +1,3 @@
--- tests/helpers/test_helper.lua
 local helper = {}
 
 -- Load a test fixture
@@ -41,7 +40,7 @@ function helper.generate_snippet(construct_type, params)
             return string.format("function %s(%s)\n  %s\nend",
                 name, table.concat(params, ", "), body)
         end,
-        -- Add more snippet generators as needed
+        -- TODO: add more snippet generators as needed
     }
 
     if snippets[construct_type] then
