@@ -75,12 +75,16 @@
 	<td class="summary">Creates a union type</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Type.function_type">Type.function_type (params, returns)</a></td>
+	<td class="name" nowrap><a href="#Type.function_type">Type.function_type (params, returns, has_varargs)</a></td>
 	<td class="summary">Creates a function type</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#Type.table_type">Type.table_type (fields)</a></td>
-	<td class="summary">Creates a table type</td>
+	<td class="name" nowrap><a href="#Type.table_type">Type.table_type (fields, array_type)</a></td>
+	<td class="summary">Creates a table type with specific field requirements</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Type.module_type">Type.module_type (name, exports)</a></td>
+	<td class="summary">Creates a module type</td>
 	</tr>
 </table>
 <h2><a href="#Class_SymbolTable">Class SymbolTable </a></h2>
@@ -94,12 +98,20 @@
 	<td class="summary">Defines a symbol in the symbol table.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#SymbolTable:define_parameter">SymbolTable:define_parameter (name, type, line, column)</a></td>
+	<td class="summary">Defines a parameter symbol</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#SymbolTable:lookup">SymbolTable:lookup (name)</a></td>
 	<td class="summary">Looks up a symbol in the symbol table.</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#SymbolTable:get_unused_variables">SymbolTable:get_unused_variables ()</a></td>
 	<td class="summary">Gets unused variables in this scope</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#SymbolTable:get_all_symbols">SymbolTable:get_all_symbols ()</a></td>
+	<td class="summary">Gets all symbols at all levels</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#SymbolTable:enter_scope">SymbolTable:enter_scope (scope_name)</a></td>
@@ -137,6 +149,30 @@
 	<td class="summary">Infers the type of an expression.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_function_call">TypeInference:infer_function_call (node, scope)</a></td>
+	<td class="summary">Infers the type of a function call</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_method_call">TypeInference:infer_method_call (node, scope)</a></td>
+	<td class="summary">Infers the type of a method call</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_field_access">TypeInference:infer_field_access (node, scope)</a></td>
+	<td class="summary">Infers the type of field access</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_index_access">TypeInference:infer_index_access (node, scope)</a></td>
+	<td class="summary">Infers the type of index access</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_table_constructor">TypeInference:infer_table_constructor (node, scope)</a></td>
+	<td class="summary">Infers the type of a table constructor</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:infer_function_expression">TypeInference:infer_function_expression (node, scope)</a></td>
+	<td class="summary">Infers the type of a function expression</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#TypeInference:infer_parameter_type_from_usage">TypeInference:infer_parameter_type_from_usage (param_name, body, scope)</a></td>
 	<td class="summary">Attempts to infer parameter type from usage patterns</td>
 	</tr>
@@ -146,15 +182,63 @@
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#TypeInference:analyze_expression_for_param_inference">TypeInference:analyze_expression_for_param_inference (expr, param_name)</a></td>
-	<td class="summary">Helper to analyze expressions for parameter type inference (enhanced)</td>
+	<td class="summary">Helper to analyze expressions for parameter type inference</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#TypeInference:analyze_statement">TypeInference:analyze_statement (node, scope)</a></td>
 	<td class="summary">Analyzes a statement.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#TypeInference:analyze">TypeInference:analyze (ast)</a></td>
+	<td class="name" nowrap><a href="#TypeInference:analyze_local_assignment">TypeInference:analyze_local_assignment (node, scope)</a></td>
+	<td class="summary">Analyzes local assignment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_assignment">TypeInference:analyze_assignment (node, scope)</a></td>
+	<td class="summary">Analyzes assignment</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_function_def">TypeInference:analyze_function_def (node, scope)</a></td>
+	<td class="summary">Analyzes function definition</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_local_function_def">TypeInference:analyze_local_function_def (node, scope)</a></td>
+	<td class="summary">Analyzes local function definition</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_return_statement">TypeInference:analyze_return_statement (node, scope)</a></td>
+	<td class="summary">Analyzes return statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_if_statement">TypeInference:analyze_if_statement (node, scope)</a></td>
+	<td class="summary">Analyzes if statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_while_statement">TypeInference:analyze_while_statement (node, scope)</a></td>
+	<td class="summary">Analyzes while statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_numeric_for_statement">TypeInference:analyze_numeric_for_statement (node, scope)</a></td>
+	<td class="summary">Analyzes numeric for statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_generic_for_statement">TypeInference:analyze_generic_for_statement (node, scope)</a></td>
+	<td class="summary">Analyzes generic for statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_repeat_statement">TypeInference:analyze_repeat_statement (node, scope)</a></td>
+	<td class="summary">Analyzes repeat statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze_do_block">TypeInference:analyze_do_block (node, scope)</a></td>
+	<td class="summary">Analyzes do block</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:analyze">TypeInference:analyze (ast, options)</a></td>
 	<td class="summary">Performs static analysis on the AST.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#TypeInference:add_builtin_globals">TypeInference:add_builtin_globals ()</a></td>
+	<td class="summary">Adds built-in global functions and libraries</td>
 	</tr>
 </table>
 
@@ -267,7 +351,7 @@
 </dd>
     <dt>
     <a name = "Type.function_type"></a>
-    <strong>Type.function_type (params, returns)</strong>
+    <strong>Type.function_type (params, returns, has_varargs)</strong>
     </dt>
     <dd>
     Creates a function type
@@ -276,10 +360,13 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">params</span>
-         table Array of parameter types
+         table|nil Array of parameter types
         </li>
         <li><span class="parameter">returns</span>
-         Type Return type
+         Type|nil Return type
+        </li>
+        <li><span class="parameter">has_varargs</span>
+         boolean|nil Whether function accepts varargs
         </li>
     </ul>
 
@@ -295,16 +382,19 @@
 </dd>
     <dt>
     <a name = "Type.table_type"></a>
-    <strong>Type.table_type (fields)</strong>
+    <strong>Type.table_type (fields, array_type)</strong>
     </dt>
     <dd>
-    Creates a table type
+    Creates a table type with specific field requirements
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">fields</span>
-         table Map of field names to types
+         table|nil Map of field names to types
+        </li>
+        <li><span class="parameter">array_type</span>
+         Type|nil Type for array elements (optional)
         </li>
     </ul>
 
@@ -312,6 +402,34 @@
     <ol>
 
         Type Table type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Type.module_type"></a>
+    <strong>Type.module_type (name, exports)</strong>
+    </dt>
+    <dd>
+    Creates a module type
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+         string Module name
+        </li>
+        <li><span class="parameter">exports</span>
+         table Exported symbols
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Module type
     </ol>
 
 
@@ -380,6 +498,35 @@
 
 </dd>
     <dt>
+    <a name = "SymbolTable:define_parameter"></a>
+    <strong>SymbolTable:define_parameter (name, type, line, column)</strong>
+    </dt>
+    <dd>
+    Defines a parameter symbol
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">name</span>
+         string Parameter name
+        </li>
+        <li><span class="parameter">type</span>
+         Type Parameter type
+        </li>
+        <li><span class="parameter">line</span>
+         number Line number
+        </li>
+        <li><span class="parameter">column</span>
+         number Column number
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "SymbolTable:lookup"></a>
     <strong>SymbolTable:lookup (name)</strong>
     </dt>
@@ -417,6 +564,25 @@
     <ol>
 
         table Array of unused symbols
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "SymbolTable:get_all_symbols"></a>
+    <strong>SymbolTable:get_all_symbols ()</strong>
+    </dt>
+    <dd>
+    Gets all symbols at all levels
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table Array of all symbols
     </ol>
 
 
@@ -649,6 +815,174 @@
 
 </dd>
     <dt>
+    <a name = "TypeInference:infer_function_call"></a>
+    <strong>TypeInference:infer_function_call (node, scope)</strong>
+    </dt>
+    <dd>
+    Infers the type of a function call
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+         table Function call AST node
+        </li>
+        <li><span class="parameter">scope</span>
+         SymbolTable Current scope
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Return type of the function
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_method_call"></a>
+    <strong>TypeInference:infer_method_call (node, scope)</strong>
+    </dt>
+    <dd>
+    Infers the type of a method call
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+         table Method call AST node
+        </li>
+        <li><span class="parameter">scope</span>
+         SymbolTable Current scope
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Return type of the method
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_field_access"></a>
+    <strong>TypeInference:infer_field_access (node, scope)</strong>
+    </dt>
+    <dd>
+    Infers the type of field access
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+         table Field access AST node
+        </li>
+        <li><span class="parameter">scope</span>
+         SymbolTable Current scope
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Type of the field
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_index_access"></a>
+    <strong>TypeInference:infer_index_access (node, scope)</strong>
+    </dt>
+    <dd>
+    Infers the type of index access
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+         table Index access AST node
+        </li>
+        <li><span class="parameter">scope</span>
+         SymbolTable Current scope
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Type of the indexed value
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_table_constructor"></a>
+    <strong>TypeInference:infer_table_constructor (node, scope)</strong>
+    </dt>
+    <dd>
+    Infers the type of a table constructor
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+         table Table constructor AST node
+        </li>
+        <li><span class="parameter">scope</span>
+         SymbolTable Current scope
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Table type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:infer_function_expression"></a>
+    <strong>TypeInference:infer_function_expression (node, scope)</strong>
+    </dt>
+    <dd>
+    Infers the type of a function expression
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+         table Function expression AST node
+        </li>
+        <li><span class="parameter">scope</span>
+         SymbolTable Current scope
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+        Type Function type
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "TypeInference:infer_parameter_type_from_usage"></a>
     <strong>TypeInference:infer_parameter_type_from_usage (param_name, body, scope)</strong>
     </dt>
@@ -712,7 +1046,7 @@
     <strong>TypeInference:analyze_expression_for_param_inference (expr, param_name)</strong>
     </dt>
     <dd>
-    Helper to analyze expressions for parameter type inference (enhanced)
+    Helper to analyze expressions for parameter type inference
 
 
     <h3>Parameters:</h3>
@@ -764,8 +1098,261 @@
 
 </dd>
     <dt>
+    <a name = "TypeInference:analyze_local_assignment"></a>
+    <strong>TypeInference:analyze_local_assignment (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes local assignment
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_assignment"></a>
+    <strong>TypeInference:analyze_assignment (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes assignment
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_function_def"></a>
+    <strong>TypeInference:analyze_function_def (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes function definition
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_local_function_def"></a>
+    <strong>TypeInference:analyze_local_function_def (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes local function definition
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_return_statement"></a>
+    <strong>TypeInference:analyze_return_statement (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes return statement
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_if_statement"></a>
+    <strong>TypeInference:analyze_if_statement (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes if statement
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+        Check condition type
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_while_statement"></a>
+    <strong>TypeInference:analyze_while_statement (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes while statement
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_numeric_for_statement"></a>
+    <strong>TypeInference:analyze_numeric_for_statement (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes numeric for statement
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_generic_for_statement"></a>
+    <strong>TypeInference:analyze_generic_for_statement (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes generic for statement
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_repeat_statement"></a>
+    <strong>TypeInference:analyze_repeat_statement (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes repeat statement
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:analyze_do_block"></a>
+    <strong>TypeInference:analyze_do_block (node, scope)</strong>
+    </dt>
+    <dd>
+    Analyzes do block
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">node</span>
+
+        </li>
+        <li><span class="parameter">scope</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
     <a name = "TypeInference:analyze"></a>
-    <strong>TypeInference:analyze (ast)</strong>
+    <strong>TypeInference:analyze (ast, options)</strong>
     </dt>
     <dd>
     Performs static analysis on the AST.
@@ -776,13 +1363,30 @@
         <li><span class="parameter">ast</span>
          table The AST to analyze
         </li>
+        <li><span class="parameter">options</span>
+         table|nil Analysis options
+        </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
 
-        table Array of errors found during analysis
+        table Analysis results
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "TypeInference:add_builtin_globals"></a>
+    <strong>TypeInference:add_builtin_globals ()</strong>
+    </dt>
+    <dd>
+    Adds built-in global functions and libraries
+
+
+
 
 
 
@@ -795,7 +1399,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-06-09 19:22:20 </i>
+<i style="float:right;">Last updated 2025-06-10 01:01:06 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

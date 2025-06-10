@@ -61,6 +61,10 @@
 	<td class="summary">Creates a new Parser instance</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#Parser:error">Parser:error (message)</a></td>
+	<td class="summary">Records a parse error but continues parsing</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#Parser:advance">Parser:advance ()</a></td>
 	<td class="summary">Advances to the next token</td>
 	</tr>
@@ -83,6 +87,22 @@
 	<tr>
 	<td class="name" nowrap><a href="#Parser:parse_statement">Parser:parse_statement ()</a></td>
 	<td class="summary">Parses a statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_label">Parser:parse_label ()</a></td>
+	<td class="summary">Parses a label ::name::</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_goto_statement">Parser:parse_goto_statement ()</a></td>
+	<td class="summary">Parses a goto statement</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_do_block">Parser:parse_do_block ()</a></td>
+	<td class="summary">Parses a do block</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_repeat_statement">Parser:parse_repeat_statement ()</a></td>
+	<td class="summary">Parses a repeat statement</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Parser:parse_local_statement">Parser:parse_local_statement ()</a></td>
@@ -149,8 +169,20 @@
 	<td class="summary">Parses a unary expression</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_power_expression">Parser:parse_power_expression ()</a></td>
+	<td class="summary">Parses a power expression (right-associative)</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#Parser:parse_primary_expression">Parser:parse_primary_expression ()</a></td>
-	<td class="summary">Parses a primary expression</td>
+	<td class="summary">Parses a primary expression with field access and calls</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_base_primary">Parser:parse_base_primary ()</a></td>
+	<td class="summary">Parses base primary expressions</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#Parser:parse_function_expression">Parser:parse_function_expression ()</a></td>
+	<td class="summary">Parses a function expression</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#Parser:parse_table_constructor">Parser:parse_table_constructor ()</a></td>
@@ -185,6 +217,26 @@
 
         table a new Parser instance
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:error"></a>
+    <strong>Parser:error (message)</strong>
+    </dt>
+    <dd>
+    Records a parse error but continues parsing
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">message</span>
+         string Error message
+        </li>
+    </ul>
+
 
 
 
@@ -301,6 +353,62 @@
 
         table|nil The AST node for the statement
     </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_label"></a>
+    <strong>Parser:parse_label ()</strong>
+    </dt>
+    <dd>
+    Parses a label ::name::
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_goto_statement"></a>
+    <strong>Parser:parse_goto_statement ()</strong>
+    </dt>
+    <dd>
+    Parses a goto statement
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_do_block"></a>
+    <strong>Parser:parse_do_block ()</strong>
+    </dt>
+    <dd>
+    Parses a do block
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_repeat_statement"></a>
+    <strong>Parser:parse_repeat_statement ()</strong>
+    </dt>
+    <dd>
+    Parses a repeat statement
+
+
+
 
 
 
@@ -611,11 +719,11 @@
 
 </dd>
     <dt>
-    <a name = "Parser:parse_primary_expression"></a>
-    <strong>Parser:parse_primary_expression ()</strong>
+    <a name = "Parser:parse_power_expression"></a>
+    <strong>Parser:parse_power_expression ()</strong>
     </dt>
     <dd>
-    Parses a primary expression
+    Parses a power expression (right-associative)
 
 
 
@@ -623,6 +731,63 @@
     <ol>
 
         table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_primary_expression"></a>
+    <strong>Parser:parse_primary_expression ()</strong>
+    </dt>
+    <dd>
+    Parses a primary expression with field access and calls
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table|nil The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_base_primary"></a>
+    <strong>Parser:parse_base_primary ()</strong>
+    </dt>
+    <dd>
+    Parses base primary expressions
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the expression
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "Parser:parse_function_expression"></a>
+    <strong>Parser:parse_function_expression ()</strong>
+    </dt>
+    <dd>
+    Parses a function expression
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+        table The AST node for the function expression
     </ol>
 
 
@@ -655,7 +820,7 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2025-06-09 19:22:20 </i>
+<i style="float:right;">Last updated 2025-06-10 01:01:06 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
