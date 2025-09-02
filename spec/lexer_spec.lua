@@ -1,3 +1,4 @@
+---@diagnostic disable undefined-field
 describe("Lexer", function()
     local Lexer = require("verdict.stuff.lexer")
 

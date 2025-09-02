@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 describe("Analyzer", function()
     local verdict = require("verdict")
 

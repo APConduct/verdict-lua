@@ -114,7 +114,7 @@ function Parser:parse()
 end
 
 --- Parses a statement
----@return table|nil The AST node for the statement
+---@return table|nil The AST node for the statement, or nil if no valid statement was found
 function Parser:parse_statement()
     self:skip_newlines()
 
@@ -672,7 +672,7 @@ function Parser:parse_if_statement()
 end
 
 --- Parses a return statement
----@return table The AST node for the return statement
+---@return table|nil The AST node for the return statement, or nil if no valid statement was found
 function Parser:parse_return_statement()
     local line, column = self.current_token.line, self.current_token.column
     self:consume("KEYWORD") -- consume 'return'
@@ -697,7 +697,7 @@ function Parser:parse_return_statement()
 end
 
 --- Parses an expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_expression()
     -- Skip any newlines before starting expression parsing
     self:skip_newlines()
@@ -711,7 +711,7 @@ function Parser:parse_expression()
 end
 
 --- Parses an OR expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_or_expression()
     local left = self:parse_and_expression()
 
@@ -730,7 +730,7 @@ function Parser:parse_or_expression()
 end
 
 --- Parses an AND expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_and_expression()
     local left = self:parse_equality_expression()
 
@@ -749,7 +749,7 @@ function Parser:parse_and_expression()
 end
 
 --- Parses an equality expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_equality_expression()
     local left = self:parse_relational_expression()
 
@@ -768,7 +768,7 @@ function Parser:parse_equality_expression()
 end
 
 --- Parses a relational expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_relational_expression()
     local left = self:parse_concatenation_expression()
 
@@ -790,7 +790,7 @@ function Parser:parse_relational_expression()
 end
 
 --- Parses a concatenation expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_concatenation_expression()
     local left = self:parse_additive_expression()
 
@@ -810,7 +810,7 @@ function Parser:parse_concatenation_expression()
 end
 
 --- Parses an additive expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_additive_expression()
     local left = self:parse_multiplicative_expression()
 
@@ -829,7 +829,7 @@ function Parser:parse_additive_expression()
 end
 
 --- Parses a multiplicative expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_multiplicative_expression()
     local left = self:parse_unary_expression()
 
@@ -850,7 +850,7 @@ function Parser:parse_multiplicative_expression()
 end
 
 --- Parses a unary expression
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_unary_expression()
     if self.current_token.type == "MINUS" or
         (self.current_token.type == "KEYWORD" and self.current_token.value == "not") or
@@ -868,7 +868,7 @@ function Parser:parse_unary_expression()
 end
 
 --- Parses a power expression (right-associative)
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_power_expression()
     local left = self:parse_primary_expression()
 
@@ -887,7 +887,7 @@ function Parser:parse_power_expression()
 end
 
 --- Parses a primary expression with field access and calls
----@return table|nil The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_primary_expression()
     local node = self:parse_base_primary()
 
@@ -986,7 +986,7 @@ function Parser:parse_primary_expression()
 end
 
 --- Parses base primary expressions
----@return table The AST node for the expression
+---@return table|nil The AST node for the expression, or nil if no valid expression was found
 function Parser:parse_base_primary()
     local token = self.current_token
 

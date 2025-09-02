@@ -342,9 +342,6 @@ function Lexer:tokenize()
         elseif char == '+' then
             table.insert(self.tokens, create_token(TOKEN_TYPES.PLUS, char, self.line, self.column))
             self:advance()
-        elseif char == '-' then
-            table.insert(self.tokens, create_token(TOKEN_TYPES.MINUS, char, self.line, self.column))
-            self:advance()
         elseif char == '*' then
             table.insert(self.tokens, create_token(TOKEN_TYPES.MULTIPLY, char, self.line, self.column))
             self:advance()
@@ -374,6 +371,7 @@ function Lexer:tokenize()
             else
                 table.insert(self.tokens, create_token(TOKEN_TYPES.DOT, char, self.line, self.column))
                 self:advance()
+                --- Handle dot followed by a number (e.g., .5)
             end
         elseif char == ':' then
             if self:peek_char() == ':' then
@@ -458,3 +456,5 @@ end
 -- Export token types and lexer
 Lexer.TOKEN_TYPES = TOKEN_TYPES
 return Lexer
+
+--- TODO: Add unit tests for the lexer

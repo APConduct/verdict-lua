@@ -22,42 +22,42 @@ end
 ---@param other Type The target type
 ---@return boolean True if this type can be assigned to other
 function Type:is_assignable_to(other)
-    if self.kind == "unknown" or other.kind == "unknown" then
+    if self.kind == "unknown" or other["kind"] == "unknown" then
         return true -- Unknown types are compatible with everything
     end
 
-    if self.kind == other.kind then
+    if self.kind == other["kind"] then
         if self.kind == "primitive" then
-            return self.data.name == other.data.name
+            return self.data.name == other["data"].name
         elseif self.kind == "function" then
             -- More sophisticated function compatibility
-            if not self.data.params or not other.data.params then
+            if not self.data.params or not other["data"].params then
                 return true -- Unknown parameters
             end
 
             -- Check parameter count and types
-            if #self.data.params ~= #other.data.params then
+            if #self.data.params ~= #other["data"].params then
                 return false
             end
 
             for i, param in ipairs(self.data.params) do
-                if not param:is_assignable_to(other.data.params[i]) then
+                if not param:is_assignable_to(other["data"].params[i]) then
                     return false
                 end
             end
 
             -- Check return type
             local self_return = self.data.returns or Type.unknown()
-            local other_return = other.data.returns or Type.unknown()
-            return self_return:is_assignable_to(other_return)
+            local other_return = other["data"].returns or Type.unknown()
+            return self_return["is_assignable_to"](self_return, other_return)
         elseif self.kind == "table" then
             -- Enhanced table compatibility
-            if not self.data.fields or not other.data.fields then
+            if not self.data.fields or not other["data"].fields then
                 return true -- Unknown structure
             end
 
             -- Check if all required fields in other exist in self
-            for key, other_type in pairs(other.data.fields) do
+            for key, other_type in pairs(other["data"].fields) do
                 local self_type = self.data.fields[key]
                 if not self_type or not self_type:is_assignable_to(other_type) then
                     return false
@@ -77,7 +77,7 @@ function Type:is_assignable_to(other)
     end
 
     -- Special cases for Lua's dynamic nature
-    if other.kind == "primitive" and other.data.name == "string" then
+    if other["kind"] == "primitive" and other["data"].name == "string" then
         -- Numbers can be converted to strings
         if self.kind == "primitive" and self.data.name == "number" then
             return true
@@ -85,8 +85,8 @@ function Type:is_assignable_to(other)
     end
 
     -- Check union types
-    if other.kind == "union" then
-        for _, component in ipairs(other.data.types) do
+    if other["kind"] == "union" then
+        for _, component in ipairs(other["data"].types) do
             if self:is_assignable_to(component) then
                 return true
             end
@@ -246,7 +246,7 @@ SymbolTable.__index = SymbolTable
 --- Creates a new SymbolTable instance.
 ---@param parent SymbolTable | nil The parent symbol table (optional)
 function SymbolTable.new(parent)
-    local level = parent and (parent.level + 1) or 0
+    local level = parent and (parent["level"] + 1) or 0
     return setmetatable({
         parent = parent,
         symbols = {},
@@ -405,10 +405,14 @@ end
 ---@param node table The AST node for error reporting
 ---@return Type The result type of the unary operation
 function TypeInference:infer_unary_op(expr_type, op, node)
+    -- Defensive: ensure expr_type is a table and has expected fields
+    local kind = expr_type and expr_type["kind"] or nil
+    local data = expr_type and expr_type["data"] or nil
+
     if op == "-" then
-        if expr_type.kind == "primitive" and expr_type.data.name == "number" then
+        if kind == "primitive" and data and data.name == "number" then
             return Type.number()
-        elseif expr_type.kind == "unknown" then
+        elseif kind == "unknown" then
             return Type.number()
         else
             self:error("Attempt to perform arithmetic on a " .. tostring(expr_type) .. " value", node)
@@ -418,11 +422,11 @@ function TypeInference:infer_unary_op(expr_type, op, node)
         return Type.boolean()
     elseif op == "#" then
         -- Length operator works on strings and tables
-        if expr_type.kind == "primitive" and (expr_type.data.name == "string") then
+        if kind == "primitive" and data and data.name == "string" then
             return Type.number()
-        elseif expr_type.kind == "table" then
+        elseif kind == "table" then
             return Type.number()
-        elseif expr_type.kind == "unknown" then
+        elseif kind == "unknown" then
             return Type.number()
         else
             self:warning("Length operator applied to " .. tostring(expr_type), node)
@@ -440,13 +444,19 @@ end
 ---@param node table The AST node for error reporting
 ---@return Type The result type of the binary operation
 function TypeInference:infer_binary_op(left_type, right_type, op, node)
-    local left_unknown = left_type.kind == "unknown"
-    local right_unknown = right_type.kind == "unknown"
+    -- Defensive: ensure left_type and right_type are tables and have expected fields
+    local left_kind = left_type and left_type["kind"] or nil
+    local left_data = left_type and left_type["data"] or nil
+    local right_kind = right_type and right_type["kind"] or nil
+    local right_data = right_type and right_type["data"] or nil
+
+    local left_unknown = left_kind == "unknown"
+    local right_unknown = right_kind == "unknown"
 
     -- Arithmetic operations
     if op == "+" or op == "-" or op == "*" or op == "/" or op == "%" or op == "^" then
-        if left_type.kind == "primitive" and left_type.data.name == "number" and
-            right_type.kind == "primitive" and right_type.data.name == "number" then
+        if left_kind == "primitive" and left_data and left_data.name == "number" and
+            right_kind == "primitive" and right_data and right_data.name == "number" then
             return Type.number()
         elseif left_unknown or right_unknown then
             return Type.number()
@@ -458,8 +468,8 @@ function TypeInference:infer_binary_op(left_type, right_type, op, node)
         -- String concatenation
     elseif op == ".." then
         -- In Lua, numbers can be concatenated as strings
-        if (left_type.kind == "primitive" and (left_type.data.name == "string" or left_type.data.name == "number")) and
-            (right_type.kind == "primitive" and (right_type.data.name == "string" or right_type.data.name == "number")) then
+        if (left_kind == "primitive" and left_data and (left_data.name == "string" or left_data.name == "number")) and
+            (right_kind == "primitive" and right_data and (right_data.name == "string" or right_data.name == "number")) then
             return Type.string()
         elseif left_unknown or right_unknown then
             return Type.string()
@@ -472,9 +482,9 @@ function TypeInference:infer_binary_op(left_type, right_type, op, node)
     elseif op == "==" or op == "~=" then
         return Type.boolean()
     elseif op == "<" or op == ">" or op == "<=" or op == ">=" then
-        if (left_type.kind == "primitive" and (left_type.data.name == "number" or left_type.data.name == "string")) and
-            (right_type.kind == "primitive" and (right_type.data.name == "number" or right_type.data.name == "string")) and
-            left_type.data.name == right_type.data.name then
+        if (left_kind == "primitive" and left_data and (left_data.name == "number" or left_data.name == "string")) and
+            (right_kind == "primitive" and right_data and (right_data.name == "number" or right_data.name == "string")) and
+            left_data.name == right_data.name then
             return Type.boolean()
         elseif left_unknown or right_unknown then
             return Type.boolean()
@@ -507,7 +517,7 @@ function TypeInference:infer_expression(node, scope)
     if node.type == "literal" then
         return self:infer_literal(node.data)
     elseif node.type == "identifier" then
-        local symbol = scope:lookup(node.data.name)
+        local symbol = scope["lookup"](scope, node.data.name)
         if not symbol then
             self:error("Undefined variable: " .. node.data.name, node)
             return Type.unknown()
@@ -545,13 +555,15 @@ end
 ---@return Type Return type of the function
 function TypeInference:infer_function_call(node, scope)
     local func_type = self:infer_expression(node.data.func, scope)
+    local kind = func_type and func_type["kind"] or nil
+    local data = func_type and func_type["data"] or nil
 
-    if func_type.kind == "function" then
-        local expected_params = func_type.data.params or {}
+    if kind == "function" then
+        local expected_params = data and data.params or {}
         local actual_args = node.data.args or {}
 
         -- Check argument count (allow varargs)
-        if not func_type.data.has_varargs and #actual_args > #expected_params then
+        if not (data and data.has_varargs) and #actual_args > #expected_params then
             self:warning("Function expects " .. #expected_params ..
                 " arguments but got " .. #actual_args, node)
         elseif #actual_args < #expected_params then
@@ -564,14 +576,14 @@ function TypeInference:infer_function_call(node, scope)
             if i <= #expected_params then
                 local arg_type = self:infer_expression(arg, scope)
                 local expected_type = expected_params[i]
-                if not arg_type:is_assignable_to(expected_type) then
+                if not (arg_type and expected_type and arg_type["is_assignable_to"] and arg_type["is_assignable_to"](arg_type, expected_type)) then
                     self:error("Argument " .. i .. " expects " .. tostring(expected_type) ..
                         " but got " .. tostring(arg_type), arg)
                 end
             end
         end
 
-        return func_type.data.returns or Type.unknown()
+        return (data and data.returns) or Type.unknown()
     else
         self:error("Attempt to call " .. tostring(func_type) .. " (not a function)", node)
         return Type.unknown()
@@ -584,12 +596,14 @@ end
 ---@return Type Return type of the method
 function TypeInference:infer_method_call(node, scope)
     local object_type = self:infer_expression(node.data.object, scope)
+    local kind = object_type and object_type["kind"] or nil
+    local data = object_type and object_type["data"] or nil
 
-    if object_type.kind == "table" and object_type.data.fields then
-        local method_type = object_type.data.fields[node.data.method]
-        if method_type and method_type.kind == "function" then
+    if kind == "table" and data and data.fields then
+        local method_type = data.fields[node.data.method]
+        if method_type and method_type["kind"] == "function" then
             -- Method calls implicitly pass self as first argument
-            local expected_params = method_type.data.params or {}
+            local expected_params = method_type["data"] and method_type["data"].params or {}
             local actual_args = node.data.args or {}
 
             -- Check argument count (excluding implicit self)
@@ -598,7 +612,7 @@ function TypeInference:infer_method_call(node, scope)
                     " arguments but got " .. #actual_args, node)
             end
 
-            return method_type.data.returns or Type.unknown()
+            return (method_type["data"] and method_type["data"].returns) or Type.unknown()
         else
             self:warning("Method '" .. node.data.method .. "' not found on " .. tostring(object_type), node)
             return Type.unknown()
@@ -616,23 +630,23 @@ end
 function TypeInference:infer_field_access(node, scope)
     local object_type = self:infer_expression(node.data.object, scope)
 
-    if object_type.kind == "table" and object_type.data.fields then
-        local field_type = object_type.data.fields[node.data.field]
+    if object_type["kind"] == "table" and object_type["data"].fields then
+        local field_type = object_type["data"].fields[node.data.field]
         if field_type then
             return field_type
         else
             -- self:warning("Field '" .. node.data.field .. "' not found on table", node)
             return Type.unknown()
         end
-    elseif object_type.kind == "module" and object_type.data.exports then
-        local export_type = object_type.data.exports[node.data.field]
+    elseif object_type["kind"] == "module" and object_type["data"].exports then
+        local export_type = object_type["data"].exports[node.data.field]
         if export_type then
             return export_type
         else
             self:error("Export '" .. node.data.field .. "' not found in module", node)
             return Type.unknown()
         end
-    elseif object_type.kind == "unknown" then
+    elseif object_type["kind"] == "unknown" then
         return Type.unknown()
     else
         self:error("Attempt to index " .. tostring(object_type) .. " (not a table)", node)
@@ -648,18 +662,18 @@ function TypeInference:infer_index_access(node, scope)
     local object_type = self:infer_expression(node.data.object, scope)
     local index_type = self:infer_expression(node.data.index, scope)
 
-    if object_type.kind == "table" then
-        if object_type.data.array_type then
+    if object_type["kind"] == "table" then
+        if object_type["data"].array_type then
             -- Array-like table
-            if index_type.kind == "primitive" and index_type.data.name == "number" then
-                return object_type.data.array_type
+            if index_type["kind"] == "primitive" and index_type["data"].name == "number" then
+                return object_type["data"].array_type
             else
                 self:warning("Array index should be number, got " .. tostring(index_type), node)
-                return object_type.data.array_type
+                return object_type["data"].array_type
             end
-        elseif object_type.data.fields then
+        elseif object_type["data"].fields then
             -- Try to find the specific field if index is a string literal
-            if index_type.kind == "primitive" and index_type.data.name == "string" then
+            if index_type["kind"] == "primitive" and index_type["data"].name == "string" then
                 -- We'd need the actual string value here, which requires constant folding
                 return Type.unknown()
             end
@@ -667,14 +681,14 @@ function TypeInference:infer_index_access(node, scope)
         else
             return Type.unknown()
         end
-    elseif object_type.kind == "primitive" and object_type.data.name == "string" then
-        if index_type.kind == "primitive" and index_type.data.name == "number" then
+    elseif object_type["kind"] == "primitive" and object_type["data"].name == "string" then
+        if index_type["kind"] == "primitive" and index_type["data"].name == "number" then
             return Type.string() -- String indexing returns string
         else
             self:error("String index must be number, got " .. tostring(index_type), node)
             return Type.unknown()
         end
-    elseif object_type.kind == "unknown" then
+    elseif object_type["kind"] == "unknown" then
         return Type.unknown()
     else
         self:error("Attempt to index " .. tostring(object_type), node)
@@ -698,7 +712,7 @@ function TypeInference:infer_table_constructor(node, scope)
             fields[field.data.key] = value_type
         elseif field.data.type == "indexed" then
             -- [expr] = value
-            local key_type = self:infer_expression(field.data.key, scope)
+            -- local key_type = self:infer_expression(field.data.key, scope) -- Removed unused local
             local value_type = self:infer_expression(field.data.value, scope)
             -- For now, we can't track dynamic keys easily
             fields["<dynamic>"] = value_type
@@ -707,7 +721,7 @@ function TypeInference:infer_table_constructor(node, scope)
             local value_type = self:infer_expression(field.data.value, scope)
             if not array_type then
                 array_type = value_type
-            elseif not value_type:is_assignable_to(array_type) then
+            elseif not (array_type.is_assignable_to and array_type:is_assignable_to(value_type)) then
                 array_type = Type.union({ array_type, value_type })
             end
             fields[tostring(array_index)] = value_type
@@ -723,7 +737,8 @@ end
 ---@param scope SymbolTable Current scope
 ---@return Type Function type
 function TypeInference:infer_function_expression(node, scope)
-    local func_scope = scope:enter_scope("function")
+    -- Fix: Use scope["enter_scope"] to avoid undefined field error
+    local func_scope = scope["enter_scope"](scope, "function")
     local param_types = {}
 
     -- Define parameters
@@ -765,7 +780,7 @@ end
 function TypeInference:infer_parameter_type_from_usage(param_name, body, scope)
     for _, stmt in ipairs(body or {}) do
         local inferred_type = self:analyze_statement_for_param_inference(stmt, param_name)
-        if inferred_type.kind ~= "unknown" then
+        if inferred_type["kind"] ~= "unknown" then
             return inferred_type
         end
     end
@@ -782,26 +797,29 @@ function TypeInference:analyze_statement_for_param_inference(stmt, param_name)
     if stmt.type == "return_statement" and stmt.data.exprs then
         for _, expr in ipairs(stmt.data.exprs) do
             local inferred = self:analyze_expression_for_param_inference(expr, param_name)
-            if inferred.kind ~= "unknown" then
+            if inferred and inferred["kind"] ~= "unknown" then
                 return inferred
             end
         end
     elseif stmt.type == "local_assignment" and stmt.data.exprs then
         for _, expr in ipairs(stmt.data.exprs) do
             local inferred = self:analyze_expression_for_param_inference(expr, param_name)
-            if inferred.kind ~= "unknown" then
+            if inferred and inferred["kind"] ~= "unknown" then
                 return inferred
             end
         end
     elseif stmt.type == "assignment" and stmt.data.exprs then
         for _, expr in ipairs(stmt.data.exprs) do
             local inferred = self:analyze_expression_for_param_inference(expr, param_name)
-            if inferred.kind ~= "unknown" then
+            if inferred and inferred["kind"] ~= "unknown" then
                 return inferred
             end
         end
     elseif stmt.type == "expression_statement" and stmt.data.expr then
-        return self:analyze_expression_for_param_inference(stmt.data.expr, param_name)
+        local inferred = self:analyze_expression_for_param_inference(stmt.data.expr, param_name)
+        if inferred and inferred["kind"] ~= "unknown" then
+            return inferred
+        end
     end
 
     return Type.unknown()
@@ -825,14 +843,14 @@ function TypeInference:analyze_expression_for_param_inference(expr, param_name)
         end
 
         local left_type = self:analyze_expression_for_param_inference(expr.data.left, param_name)
-        if left_type.kind ~= "unknown" then return left_type end
+        if left_type["kind"] ~= "unknown" then return left_type end
 
         local right_type = self:analyze_expression_for_param_inference(expr.data.right, param_name)
-        if right_type.kind ~= "unknown" then return right_type end
+        if right_type["kind"] ~= "unknown" then return right_type end
     elseif expr.type == "function_call" then
         for _, arg in ipairs(expr.data.args or {}) do
             local arg_type = self:analyze_expression_for_param_inference(arg, param_name)
-            if arg_type.kind ~= "unknown" then
+            if arg_type["kind"] ~= "unknown" then
                 return arg_type
             end
         end
@@ -925,7 +943,7 @@ function TypeInference:analyze_assignment(node, scope)
         if target.type == "identifier" then
             local symbol = scope:lookup(target.data.name)
             if symbol then
-                if not expr_type:is_assignable_to(symbol.type) then
+                if not expr_type["is_assignable_to"](expr_type, symbol.type) then
                     self:error("Cannot assign " .. tostring(expr_type) ..
                         " to variable of type " .. tostring(symbol.type), target)
                 end
@@ -936,13 +954,13 @@ function TypeInference:analyze_assignment(node, scope)
         elseif target.type == "field_access" then
             -- Check if object exists and is a table
             local object_type = self:infer_expression(target.data.object, scope)
-            if object_type.kind ~= "table" and object_type.kind ~= "unknown" then
+            if object_type["kind"] ~= "table" and object_type["kind"] ~= "unknown" then
                 self:error("Attempt to assign field on " .. tostring(object_type), target)
             end
         elseif target.type == "index_access" then
             -- Check if object exists and is indexable
             local object_type = self:infer_expression(target.data.object, scope)
-            if object_type.kind ~= "table" and object_type.kind ~= "unknown" then
+            if object_type["kind"] ~= "table" and object_type["kind"] ~= "unknown" then
                 self:error("Attempt to index " .. tostring(object_type), target)
             end
         end
@@ -964,7 +982,7 @@ function TypeInference:analyze_function_def(node, scope)
     -- Infer parameter types from usage
     for i, param_name in ipairs(node.data.params or {}) do
         local inferred_type = self:infer_parameter_type_from_usage(param_name, node.data.body, func_scope)
-        if inferred_type.kind ~= "unknown" then
+        if inferred_type["kind"] ~= "unknown" then
             param_types[i] = inferred_type
             func_scope.symbols[param_name].type = inferred_type
         end
@@ -1047,7 +1065,7 @@ function TypeInference:analyze_local_function_def(node, scope)
     -- Infer parameter types from usage
     for i, param_name in ipairs(node.data.params or {}) do
         local inferred_type = self:infer_parameter_type_from_usage(param_name, node.data.body, func_scope)
-        if inferred_type.kind ~= "unknown" then
+        if inferred_type ~= Type.unknown() then
             param_types[i] = inferred_type
             func_scope.symbols[param_name].type = inferred_type
         end
@@ -1167,13 +1185,13 @@ function TypeInference:analyze_numeric_for_statement(node, scope)
     local step_type = node.data.step and self:infer_expression(node.data.step, scope) or Type.number()
 
     -- Check that start, finish, step are numbers
-    if start_type.kind == "primitive" and start_type.data.name ~= "number" and start_type.kind ~= "unknown" then
+    if start_type["kind"] == "primitive" and start_type["data"].name ~= "number" and start_type["kind"] ~= "unknown" then
         self:error("For loop start value must be number, got " .. tostring(start_type), node.data.start)
     end
-    if finish_type.kind == "primitive" and finish_type.data.name ~= "number" and finish_type.kind ~= "unknown" then
+    if finish_type["kind"] == "primitive" and finish_type["data"].name ~= "number" and finish_type["kind"] ~= "unknown" then
         self:error("For loop end value must be number, got " .. tostring(finish_type), node.data.finish)
     end
-    if step_type.kind == "primitive" and step_type.data.name ~= "number" and step_type.kind ~= "unknown" then
+    if step_type["kind"] == "primitive" and step_type["data"].name ~= "number" and step_type["kind"] ~= "unknown" then
         self:error("For loop step value must be number, got " .. tostring(step_type), node.data.step)
     end
 
